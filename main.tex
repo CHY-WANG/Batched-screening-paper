@@ -10,6 +10,8 @@
 \usepackage{color}
 \usepackage{natbib}
 \providecommand{\note}[1]{\textcolor{red}{#1}}
+\newtheorem{theorem}{Theorem}[section]
+
 
 \title{Efficient Feature Screening for Lasso-Type
 Problems via Batched Safe-Strong Rules}
@@ -38,7 +40,7 @@ However, modern data collection and storage techniques allow researchers to meas
 
 One promising technique to address this challenge is feature screening. The lasso model solution is sparse in the sense that most coefficients will be exactly zero; for these ``inactive'' coefficients we do not need their associated features.  In theory, if we knew which coefficients were nonzero at each value of $\lambda$, we could read into memory only those features and leave the remaining features on disk. In reality, we cannot know this prior to fitting the model -- however, through the clever use of feature screening rules, we can greatly reduce the number of times inactive features are read into memory, thereby minimizing the computational burden.  In what follows, we refer to features left on disk as ``discarded'' features, although it is worth clarifying that this is not a permanent decision and a decision is made for each $\lambda$ values: for example, a feature can be discarded at one value of $\lambda$ but included in the list of potentially active features at other values of $\lambda$.
 
-There are two important categories of features screening rules: ``strong'' rules\cite{tibshirani2011regression}, which occasionally incorrectly discard some active features, and ``safe'' rules\cite{ghaoui2010safe,wang2013lasso,xiang2012fast, xiang2011learning}, which are guaranteed never to do so.  As one might expect, strong rules tend to be easier to calculate; however, because mistakes are possible, one must add a post-convergence check to ensure that no features were incorrectly discarded. This check is not necessary with safe rules. However, safe rules are considerably less powerful at discarding features than strong rules. More recently, hybrid approaches \cite{zeng2017efficient} combining the two types of rules have been shown to be more efficient than either type of rule alone.
+There are two important categories of features screening rules: ``strong'' rules\cite{tibshirani2011regression}\cite{qian2019fast}, which occasionally incorrectly discard some active features, and ``safe'' rules\cite{ghaoui2010safe,wang2013lasso,xiang2012fast, xiang2011learning}, which are guaranteed never to do so.  As one might expect, strong rules tend to be easier to calculate; however, because mistakes are possible, one must add a post-convergence check to ensure that no features were incorrectly discarded. This check is not necessary with safe rules. However, safe rules are considerably less powerful at discarding features than strong rules. More recently, hybrid approaches \cite{zeng2017efficient} combining the two types of rules have been shown to be more efficient than either type of rule alone.
 
 \note{I think we need a better transition here} In this paper, we proposed an adaptive batched screening scheme that changes how screening is done along the path of $\lambda$ values and implement it into hybrid approaches to form adaptive batched safe-strong rules. We divided the set of $\lambda$ values into batches and screening within each batch is based on the same solution at one $\lambda$ value at the beginning of the batch. On one hand, basing on the same solution avoids many costly computation and on the other hand, referring to solution at a close $\lambda$ value provides more screening power. An adaptive choice of batches sizes are applied using the screening performance from previous $\lambda$ values to better balance these two effects. It will be shown that our adaptive rule can greatly reduce the computation time and outperform other method under all scenarios. Similar to hybrid approaches, our method can also utilize any member of safe rules, giving it the potential for further speed up given new safe rules and the flexibility to extend to other lasso type models. For example we extended the method to work with logistic regression with lasso penalty.
 
@@ -66,7 +68,7 @@ This manuscript provides a brief review of existing feature screening rules in S
 %     \item Hybrid Safe-Strong rule
 % \end{itemize}
 
-Screening rules are able to discard zero coefficients due to the KKT (Karush-Kuhn-Tucker) conditions of the lasso problem. It states that the solution $\hat{\beta}(\lambda)$ must satisfies the following conditions:
+Screening rules are able to discard zero coefficients due to the KKT (Karush-Kuhn-Tucker) conditions of the lasso problem. It states that the solution $\hat{\beta}(\lambda)$ is optimal if and only if the following conditions hold:
 
 \begin{equation}
     \begin{cases}
@@ -78,7 +80,8 @@ Screening rules are able to discard zero coefficients due to the KKT (Karush-Kuh
 where $r(\lambda)$ is the residuals vector at $\lambda$ defined as $y-X\hat{\beta}(\lambda)$. If the residuals are known, we can safely conclude feature $j$ has 0 coefficient if the second condition holds with "$<$", but residuals cannot be calculated without first solving the coefficients. However, when fitting a solution path, residuals at previous $\lambda$ values can be calculated and provide information about residuals at current $\lambda$ value and thus be used for screening.
 
 Pathwise coordinate descent is a popular algorithm fitting a solution path for lasso problem using warm start. Given the previous solution $\hat{\beta}(\lambda_0)$ with residuals $r(\lambda_0)$, the solution $\hat{\beta}(\lambda)$ with residuals $r(\lambda)$ can be computed by the following algorithm:
-\begin{algorithm}
+
+\begin{algorithm}[H]
     \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}\SetKwInOut{Initialize}{Initialize}
     \SetAlgoLined
     \Input{$\hat{\beta}(\lambda_0), \{x_j\}_{j=1}^p, r(\lambda_0)$}
@@ -106,18 +109,110 @@ Pathwise coordinate descent is a popular algorithm fitting a solution path for l
 
 \noindent In this algorithm, residuals $r$ are computed at each $\lambda$ value for the update of the coefficients and can thus be reused conveniently for feature screening purpose.
 
-For the rest of the paper, it will be assumed that $y$ is centered so intercept can be dropped and $\{x_j\}_{j=1}^p$ are centered and standardized. That is:
+For the rest of the paper, it will be assumed that $y$ is centered so the intercept can be dropped and $\{x_j\}_{j=1}^p$ are centered and standardized. That is:
 
 \begin{equation}
     \sum_{i=1}^ny_i=0, \qquad \sum_{i=1}^n x_{ij}=0, \qquad \sum_{i=1}^n x_{ij}^2=n,\qquad j=1,2,...,p.
 \end{equation}
-This standardization make it reasonable to apply the same penalty to all features, which are usually measured in different units. It improves the efficiency and stability of the optimization as well. Most importantly for this paper, it greatly helps simplify the forms for screening rules and thus simplify the code for implementation.
+This standardization make it reasonable to apply the same penalty to all features, which are usually measured in different units. It improves the efficiency and stability of the optimization as well. Most importantly for this manuscript, it greatly helps simplify the formulas for screening rules and thus simplify the code for implementation.
 
-It will also be assumed that lasso model is solved along $K+1$ decreasing values of $\lambda$ denoted as $\lambda_0,\lambda_1,...,\lambda_K$.
+It will also be assumed that lasso model is solved along $K+1$ decreasing values of $\lambda$ denoted as $\lambda_0,\lambda_1,...,\lambda_K$. Solution of $\beta$ at any $\lambda_k$ is denoted as $\hat{\beta}(\lambda_k)$. From the KKT conditions (2), when $\lambda>\max_j|x_j^Ty/n|$, $r(\lambda)=y$ and all the coefficients will always be zero. As a result, we only need to focus on $\lambda\in (0,\max_j|x_j^Ty/n|]$ and we will set $\lambda_0=\max_j|x_j^Ty/n|$.
 
 \subsection{Active-set Cycling}
 
-Before introducing current screening rules, there is also a similar idea to reduce the number of features for part of computation, called active-set cycling (AC) \cite{lee2007efficient}. When solving the coefficients for at $\lambda_k$, first consider the model with coefficients that were non-zero at $\lambda_{k-1}$. After computing the first solution, a post-convergence KKT conditions check is performed and if there is no violation, the solution to the smaller model will be the exact solution to the full model. If there are violations, corresponding features will be added to the model and the procedure will repeat. Because features don't enter the model very frequently, usually small number of repetitions will be needed and thus the algorithm converges fast.
+Before introducing current screening rules, there is also a similar idea to reduce the number of features for part of computation, called active-set cycling (AC) \cite{lee2007efficient}. When solving the coefficients for at $\lambda_{k+1}$, first only consider features whose coefficients were non-zero at $\lambda_k$ and discard other features with zero coefficients at $\lambda_k$. We compute the solution for the smaller model with these reduced number of coefficients.
+
+After computing the solution, a post-convergence KKT conditions check is performed. Because the KKT conditions are sufficient for the solution to be optimal, if there is no violation, the solution to the smaller model will be exactly the same as if we solve the model with all features. If there are violations, corresponding features will be added to the model and this procedure will repeat. Because features don't enter the model very frequently, usually small number of repetitions will be needed and thus the algorithm provides substantial speed up.
+
+\subsection{Strong rules}
+
+Sequential strong rule (SSR) \cite{tibshirani2011regression} is a fast and powerful feature screening rule. Given the solution $\hat{\beta}(\lambda_k)$ at $\lambda_k$, we can compute the residual vector as $r(\lambda_k)=y-X\hat{\beta}(\lambda_k)$. The SSR discard the $j$-th feature at $\lambda_{k+1}$ if:
+
+\begin{equation}
+    |x_j^Tr(\lambda_k)/n|<2\lambda_{k+1}-\lambda_k.
+\end{equation}
+
+The SSR is derived from the KKT condition and the "unit-slope" assumption. In (2), if we denote the left-hand-side as $c_j(\lambda)=x_j^Tr(\lambda)/n$, then the "unit-slope" assumption assumes a unit bound on the slope of $c_j(\lambda)$ over $\lambda$. That is:
+
+\begin{equation}
+    |c_j(\lambda)-c_j(\lambda')|\leq |\lambda-\lambda'|,\qquad \forall \lambda,\lambda'\in(0,\lambda_0].
+\end{equation}
+
+Under this condition and (4), using triangle inequality, $c_j(\lambda_k)$ can be bounded as the following:
+
+\begin{equation}
+    \begin{split}
+        |c_j(\lambda_{k+1})| &\leq |c_j(\lambda_{k+1})-c_j(\lambda_k)| + |c_j(\lambda_k)|\\
+    &< \lambda_k - \lambda_{k+1} + (2\lambda_{k+1}-\lambda_k)\\
+    &=\lambda_{k+1},
+    \end{split}
+\end{equation}
+and then KKT conditions (2) guarantees $\hat{\beta}_j(\lambda_{k+1})=0$.
+
+The biggest problem of SSR is that the "unit-slope" condition (5) may not hold and thus discarded features are not guaranteed to have zero coefficients. A post-convergence KKT check is needed for the discarded features to make sure their coefficients are truly zero. If violations occur, we need to refit the model adding the violating features and repeat the post-convergence check. The cost for each post-convergence check is O(np) and especially costly when violations occur. However, previous studies have shown that violations are rare and thus additional cost is acceptable.
+
+A nice property about SSR with post-convergence check is that some quantities can be reused. When doing post-convergence check at $\lambda_k$, $x_j^Tr(\lambda_k)/n$ is calculated in (2). Then in SSR screening at $\lambda_{k+1}$ (4), this quantity is used again. In fact, when the quantity $x_j^Tr(\lambda_k)/n$ is already computed, other parts of the computation of (4) have almost zero cost. In conclusion, the computation cost of SSR is generally only the cost of the post-convergence check, which is O(npK).
+
+\subsection{Safe rules}
+
+Compared to strong rules, safe rules can discard features safely. Those discarded features are guaranteed to have zero coefficients and we do not need an addition check to validate them. We will mainly focus on enhanced dual polytope projections (EDPP) rules\cite{wang2013lasso}, because they outperform other current safe rules and are easy to incorporate in our method.
+
+The EDPP rules are derived from the dual formulation of the lasso problem (1):
+
+\begin{equation}
+    \begin{split}
+        \hat{\theta}(\lambda) = \underset{\theta\in \mathbb{R}^n}{\mathrm{argmax}}\frac{1}{2n}||y||_2^2-\frac{n\lambda}{2}||\theta-\frac{y}{n\lambda}||_2^2\\
+        subject\quad to\quad |x_j^T\theta|\leq 1,\quad \forall j=1,2,...,p.
+    \end{split}
+\end{equation}
+This is minimizing the distance between $\theta$ and the rescaled response $\frac{y}{n\lambda}$ subject to the conditions $|x_j^T\theta|\leq 1$. Geometrically $\hat{\theta}(\lambda)$ can be viewed as the projection of the rescaled response $\frac{y}{n\lambda}$ onto the polytope defined by $|x_j^T\theta|\leq 1$. As $\lambda$ decreases alone the solution path, the rescaled response $\frac{y}{n\lambda}$ moves further away from 0 and the projection $\hat{\theta}(\lambda)$ moves with it. Because $\hat{\theta}(\lambda)$ is a projection onto a non-empty closed convex set, the movement of the projection can be bounded and thus $\hat{\theta}(\lambda)$ can be bounded given some previous solution $\hat{\theta}(\lambda')$ at some $\lambda'>\lambda$.
+
+In fact, the solution of the primal problem (1) and the solution of the dual problem (7) can be linked by:
+\begin{equation}
+    \hat{\theta}(\lambda)=\frac{y-X\hat{\beta}(\lambda)}{n\lambda}=\frac{r(\lambda)}{n\lambda},
+\end{equation}
+so bounding $\hat{\theta}(\lambda)$ is essentially bounding the residual vector $r(\lambda)$. Then using the KKT conditions, some features can be guaranteed to have zero coefficients and be discarded safely. Two forms of the EDPP rule, basic EDPP (BEDPP) and sequential EDPP (SEDPP), were proposed\cite{wang2013lasso} simplified\cite{zeng2017efficient} under the standardization (3) and can be stated in the following theorems:
+
+\begin{theorem}[BEDPP]
+    For the lasso problem (1), let $\lambda_0:=\max_j|x_j^Ty/n|$ and $x_*=argmax_{x_j}|x_j^Ty/n|$. Under (3) and for any $\lambda\in(0,\lambda_0]$, we have $\hat{\beta}_j(\lambda)=0$ if
+    \begin{equation}
+        |(\lambda_0+\lambda)x_j^Ty-(\lambda_0-\lambda)sign(x_*^Ty)\lambda_0x_j^Tx_*|<2n\lambda_0\lambda-(\lambda_0-\lambda)\sqrt{n||y||_2^2-n^2\lambda_0^2}.
+    \end{equation}
+\end{theorem}
+
+\begin{theorem}[SEDPP]
+    For the lasso problem (1), let $\lambda_0:=\max_j|x_j^Ty/n|$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$. Under condition (3)
+    \begin{enumerate}
+        \item For any $k=1,2,...,K-1$, given $\hat{\beta}(\lambda_k)$, $r(\lambda_k)$ and $\hat{y}(\lambda_k):=y-X\hat{\beta}(\lambda_k)$, then $\hat{\beta}_j(\lambda_{k+1})=0$ if
+        \begin{equation}
+            \begin{split}
+                &\left|2\lambda_{k+1}x_j^Tr(\lambda_k)+(\lambda_k-\lambda_{k+1})\left( x_j^Ty-\frac{y^T\hat{y}(\lambda_k)x_j^T\hat{y}(\lambda_k)}{||\hat{y}(\lambda_k)||_2^2}\right)\right|\\&<2n\lambda_k\lambda_{k+1}-(\lambda_k-\lambda_{k+1})\sqrt{n||y||_2^2-\frac{n(y^T\hat{y}(\lambda_k))^2}{||\hat{y}(\lambda_k)||_2^2}}
+            \end{split}
+        \end{equation}
+        \item For k=0, i.e., $\lambda_k=\lambda_0$, SEDPP rule reduces to BEDPP rule. $\hat{\beta}_j(\lambda_1)=0$ if (9) holds with $\lambda=\lambda_1$.
+    \end{enumerate}
+\end{theorem}
+
+In BEDPP rule (9), the most costly parts of computation that take O(np) time are the computation of $\{x_j^Ty\}_{j=1}^p$ and $\{x_j^Tx_*\}_{j=1}^p$ ($x_*^Ty$ is an element of $\{x_j^Ty\}_{j=1}^p$). These quantities does not depend on $\lambda_k$ and thus only need to be computed once at the beginning and stored. After this step is finished, other computation of the rule takes almost zero time, so BEDPP rule can be viewed as an one-step rule with O(np) cost.
+
+In SEDPP rule (10), it requires computation of $\{x_j^Ty\}_{j=1}^p$ and $\{x_j^Tr(\lambda_k)\}_{j=1}^p$ ($x_j^T\hat{y}(\lambda_k)$ can be computed as $x_j^Ty-x_j^Tr(\lambda_k)$). For screening at every $\lambda_{k+1}$, $\{x_j^Tr(\lambda_k)\}_{j=1}^p$ need to be recalculated and this step takes O(np) time. Thus SEDPP is a sequential rule and computation of the sequence takes O(npK) time.
+
+BEDPP is much faster, but at each $\lambda_k$, it is bounding $r(\lambda_k)$ by comparing it to $r(\lambda_0)=y$. As $\lambda_k$ gets further away from $\lambda_0$, this bound becomes less precise and the screening rule becomes less powerful. SEDPP is slower, but at each $\lambda_{k+1}$, it is comparing $r(\lambda_{k+1})$ to $r(\lambda_k)$. Because $\lambda_{k+1}$ and $\lambda_k$ are close, the bound will be tight and screening will keep being powerful.
+
+\subsection{Hybrid safe-strong rules}
+
+The hybrid safe-strong rules (HSSR) \cite{zeng2017efficient} was proposed to combine SSR with any member of safe rules to take advantage of both. More specifically, it recommended  combining SSR with BEDPP rule, which showed best efficiency in experiments. This algorithm discards features that are discarded by either SSR or BEDPP rule. Then, when doing post-convergence check, it only checks features that are discarded by SSR but not discarded by BEDPP rule, instead of all features that are discarded by SSR.
+
+BEDPP rule is fast because heavy computation only occurs at the first step. SSR only requires heavy computation at the post-convergence check step. Now the set of features that need a post-convergence check is narrowed down by BEDPP rule and thus the cost of the post convergence check is reduced directly. Combining this two rules lead to a hybrid rule that outperforms using any screening rules alone in experiments.
+
+\subsection{Batch screening iterative lasso}
+
+Batch screening iterative lasso (BASIL) \cite{qian2019fast} was proposed to do SSR screening and its following post-convergence check in batches. Suppose we have a previous solution $\hat{\beta}(\lambda_k)$ and $r(\lambda_k)$ and the batch of $\{\lambda_{k+1},\lambda_{k+2},...,\lambda_{k+l}\}$ values we are going to solve at. First we do the screening for each $\lambda_{k+i}$ value in the batch based on solution at $\lambda_k$ by discarding the $j$-th feature if $|x_j^Tr(\lambda_k)/n|<2\lambda_{k+i}-\lambda_k$. Then at each $\lambda_{k+i}$ value we solve the lasso problem with only the features that are not discarded. Last at post-convergence check, we search for largest $k+i$ in the batch $\{k+1,k+2,...,k+l\}$ such that KKT conditions hold for solution at $\lambda_{k+i}$ and accept only the solution from $\lambda_{k+1}$ to $\lambda_{k+i}$. Next, we move to a new batch by replacing the batch head $k$ with $k+i$ and repeat the same procedure again.
+
+The BASIL is most beneficial when the whole $X$ matrix is to large to be fit into the RAM, thus we need to read in a small number of columns $x_j$ from the hard disk at a time. In the post-convergence check for every batch, for each $j$, $x_j$ only needs to be read in once and can be used multiple times for $\{\lambda_{k+1},\lambda_{k+2},...,\lambda_{k+l}\}$. Moreover, similar to SSR with ordinary post-convergence check, $x_j^Tr(\lambda_{x+i})$ computed at BASIL's post-convergence check step can be reused for screening at next batch.
+
+
+
 
 \section{Batched safe-strong rule}
 \label{sec:method}
