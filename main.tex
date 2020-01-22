@@ -9,9 +9,12 @@
 \usepackage[nottoc]{tocbibind}
 \usepackage{color}
 \usepackage{natbib}
-\providecommand{\note}[1]{\textcolor{red}{#1}}
 \newtheorem{theorem}{Theorem}[section]
 
+% Custom commands / shortcuts
+\providecommand{\sign}{\textrm{sign}}
+\providecommand{\note}[1]{\textcolor{red}{#1}}
+\providecommand{\lam}{\lambda}
 
 \title{Efficient Feature Screening for Lasso-Type
 Problems via Batched Safe-Strong Rules}
@@ -59,31 +62,19 @@ This manuscript provides a brief review of existing feature screening rules in S
 \section{Existing feature screening rules}
 \label{sec:existing}
 
-% \begin{itemize}
-%     \item Active set cycling ?
-%     \item Strong rules
-%     \item Safe rules:
-%     \begin{itemize}
-%         \item Sequential EDPP
-%         \item Basic EDPP
-%     \end{itemize}
-%     \item Hybrid Safe-Strong rule
-% \end{itemize}
-
-Screening rules are able to discard zero coefficients due to the KKT (Karush-Kuhn-Tucker) conditions of the lasso problem. It states that the solution $\hat{\beta}(\lambda)$ is optimal if and only if the following conditions hold:
-
+Throughout this paper, it will be assumed that $y$ is centeredand $\{x_j\}_{j=1}^p$ are centered and standardized:
 \begin{equation}
-    \begin{cases}
-    x_j^Tr(\lambda)/n = \lambda sign(\hat{\beta}(\lambda)_j),\qquad if\quad \hat{\beta}(\lambda)_j\neq 0,\\
-    |x_j^Tr(\lambda)/n| \leq \lambda,\hfill if\quad \hat{\beta}(\lambda)_j= 0,
-    \end{cases}
+    \sum_{i=1}^ny_i=0, \qquad \sum_{i=1}^n x_{ij}=0, \qquad \sum_{i=1}^n x_{ij}^2=n,\qquad j=1,2,...,p.
 \end{equation}
+This standardization make it reasonable to apply the same penalty to all features, even if originally measured in different units. It also improves the efficiency and stability of the optimization, and helps to simplify optimization.  For example, under this standardization, the intercept is exactly 0 and thus may be ignored.  Standardization also simplifies the formulas for screening rules and thus allows for more efficient implementation.
 
-where $r(\lambda)$ is the residuals vector at $\lambda$ defined as $y-X\hat{\beta}(\lambda)$. If the residuals are known, we can safely conclude feature $j$ has 0 coefficient if the second condition holds with "$<$", but residuals cannot be calculated without first solving the coefficients. However, when fitting a solution path, residuals at previous $\lambda$ values can be calculated and provide information about residuals at current $\lambda$ value and thus be used for screening.
+Typical practice when fitting lasso models is to solve for $\hat{\beta}(\lambda)$ along a decreasing sequence of $K+1$ values of $\lambda$: $\lambda_0 > \lambda_1 > \cdots > \lambda_K$.  As we will discuss shortly, we set $\lambda_0=\max_j|x_j^Ty/n|$ throughout; this ensures that $\hat{\beta}(\lambda_0)=0$, making it a natural point from which to start.
 
-Pathwise coordinate descent is a popular algorithm fitting a solution path for lasso problem using warm start. Given the previous solution $\hat{\beta}(\lambda_0)$ with residuals $r(\lambda_0)$, the solution $\hat{\beta}(\lambda)$ with residuals $r(\lambda)$ can be computed by the following algorithm:
+\note{I think we need to fix notation here -- you're using $\lam_0$ to represent both $\lam_{\max}$ and the previous value of $\lam$ in a pathwise algorithm.}
 
-\begin{algorithm}[H]
+Pathwise coordinate descent is a popular algorithm fitting a solution path for lasso problem. Letting $r(\lambda) \equiv y-X\hat{\beta}(\lambda)$ denote the vector of residuals, the solution $\hat{\beta}(\lambda)$ can be computed using Algorithm~\ref{Alg:pathwise-coordinate-descent}.  Note that the algorithm uses the previous solution $\hat{\beta}(\lambda_0)$ as the initial value in obtaining the next solution along the path, a strategy known as a ``warm start''.
+
+\begin{algorithm}[H]\label{Alg:pathwise-coordinate-descent}
     \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}\SetKwInOut{Initialize}{Initialize}
     \SetAlgoLined
     \Input{$\hat{\beta}(\lambda_0), \{x_j\}_{j=1}^p, r(\lambda_0)$}
@@ -102,23 +93,19 @@ Pathwise coordinate descent is a popular algorithm fitting a solution path for l
             $r\xleftarrow{}r-(\beta_j^{new}-\hat{\beta}_j)x_j$\;
             $\hat{\beta}_j\xleftarrow{}\beta_j^{new}$\;
         }
-
-
     }
     \Output{$\hat{\beta}(\lambda)\xleftarrow{}\hat{\beta},r(\lambda)\xleftarrow{}r$}
     \caption{Pathwise coordinate descent with warm start $\hat{\beta}(\lambda_0),r(\lambda_0)$}
 \end{algorithm}
 
-\noindent In this algorithm, residuals $r$ are computed at each $\lambda$ value for the update of the coefficients and can thus be reused conveniently for feature screening purpose.
-
-For the rest of the paper, it will be assumed that $y$ is centered so the intercept can be dropped and $\{x_j\}_{j=1}^p$ are centered and standardized. That is:
-
+In convex optimization, the Karush-Kuhn-Tucker (KKT) conditions are both necessary and sufficient for any optimal solution.  Screening rules take advantage of these KKT conditions in order to discard inactive coefficients.  For the lasso, the KKT conditions governing the optimal solution $\hat{\beta}(\lambda)$ are given by
 \begin{equation}
-    \sum_{i=1}^ny_i=0, \qquad \sum_{i=1}^n x_{ij}=0, \qquad \sum_{i=1}^n x_{ij}^2=n,\qquad j=1,2,...,p.
+  \begin{aligned}
+    x_j^Tr(\lambda)/n &= \lambda \, \sign \, \hat{\beta}(\lambda)_j & & \textrm{if} \quad \hat{\beta}(\lambda)_j\neq 0,\\
+    |x_j^Tr(\lambda)/n| &\leq \lambda & & \textrm{if} \quad \hat{\beta}(\lambda)_j= 0.
+  \end{aligned}
 \end{equation}
-This standardization make it reasonable to apply the same penalty to all features, which are usually measured in different units. It improves the efficiency and stability of the optimization as well. Most importantly for this manuscript, it greatly helps simplify the formulas for screening rules and thus simplify the code for implementation.
-
-It will also be assumed that lasso model is solved along $K+1$ decreasing values of $\lambda$ denoted as $\lambda_0,\lambda_1,...,\lambda_K$. Solution of $\beta$ at any $\lambda_k$ is denoted as $\hat{\beta}(\lambda_k)$. From the KKT conditions (2), when $\lambda>\max_j|x_j^Ty/n|$, $r(\lambda)=y$ and all the coefficients will always be zero. As a result, we only need to focus on $\lambda\in (0,\max_j|x_j^Ty/n|]$ and we will set $\lambda_0=\max_j|x_j^Ty/n|$.
+If the residuals were known, we could safely conclude that $\hat{\beta}(\lambda)_j=0$ by checking the second condition holds as a strict inequality.  The complication, of course, is that the residuals are not known until after we have solved for all the coefficients.  However, when fitting a solution path, residuals at previous $\lambda$ values provide information about residuals at the next $\lambda$ value and thus be used for screening.  Note that in Algorithm~\ref{Alg:pathwise-coordinate-descent}, the residuals $r$ are computed at each $\lambda$ value and can thus be conveniently reused for the purpose of feature screening.
 
 \subsection{Active-set Cycling}
 
