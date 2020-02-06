@@ -9,6 +9,7 @@
 \usepackage[nottoc]{tocbibind}
 \usepackage{color}
 \usepackage{natbib}
+\usepackage{graphicx}
 \newtheorem{theorem}{Theorem}[section]
 
 % Custom commands / shortcuts
@@ -70,15 +71,13 @@ This standardization make it reasonable to apply the same penalty to all feature
 
 Typical practice when fitting lasso models is to solve for $\hat{\beta}(\lambda)$ along a decreasing sequence of $K+1$ values of $\lambda$: $\lambda_0 > \lambda_1 > \cdots > \lambda_K$.  As we will discuss shortly, we set $\lambda_0=\max_j|x_j^Ty/n|$ throughout; this ensures that $\hat{\beta}(\lambda_0)=0$, making it a natural point from which to start.
 
-\note{I think we need to fix notation here -- you're using $\lam_0$ to represent both $\lam_{\max}$ and the previous value of $\lam$ in a pathwise algorithm.}
-
-Pathwise coordinate descent is a popular algorithm fitting a solution path for lasso problem. Letting $r(\lambda) \equiv y-X\hat{\beta}(\lambda)$ denote the vector of residuals, the solution $\hat{\beta}(\lambda)$ can be computed using Algorithm~\ref{Alg:pathwise-coordinate-descent}.  Note that the algorithm uses the previous solution $\hat{\beta}(\lambda_0)$ as the initial value in obtaining the next solution along the path, a strategy known as a ``warm start''.
+Pathwise coordinate descent is a popular algorithm fitting a solution path for lasso problem. For the model at any $\lambda$-value $\lambda_{k+1}$, letting $r(\lambda_{k+1}) \equiv y-X\hat{\beta}(\lambda_{k+1})$ denote the vector of residuals, the solution $\hat{\beta}(\lambda_{k+1})$ can be computed using Algorithm~\ref{Alg:pathwise-coordinate-descent}.  Note that the algorithm uses the previous solution $\hat{\beta}(\lambda_k)$ as the initial value in obtaining the next solution along the path, a strategy known as a ``warm start''.
 
 \begin{algorithm}[H]\label{Alg:pathwise-coordinate-descent}
     \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}\SetKwInOut{Initialize}{Initialize}
     \SetAlgoLined
-    \Input{$\hat{\beta}(\lambda_0), \{x_j\}_{j=1}^p, r(\lambda_0)$}
-    \Initialize{ $r = r(\lambda_0),\hat{\beta} = \hat{\beta}(\lambda_0)$}
+    \Input{$\hat{\beta}(\lambda_k), \{x_j\}_{j=1}^p, r(\lambda_k)$}
+    \Initialize{ $r = r(\lambda_k),\hat{\beta} = \hat{\beta}(\lambda_k)$}
     \BlankLine
     \While{not converged}{
         \For{$j \xleftarrow{}$ 1 \KwTo p}{
@@ -94,18 +93,18 @@ Pathwise coordinate descent is a popular algorithm fitting a solution path for l
             $\hat{\beta}_j\xleftarrow{}\beta_j^{new}$\;
         }
     }
-    \Output{$\hat{\beta}(\lambda)\xleftarrow{}\hat{\beta},r(\lambda)\xleftarrow{}r$}
-    \caption{Pathwise coordinate descent with warm start $\hat{\beta}(\lambda_0),r(\lambda_0)$}
+    \Output{$\hat{\beta}(\lambda_{k+1})\xleftarrow{}\hat{\beta},r(\lambda_{k+1})\xleftarrow{}r$}
+    \caption{Pathwise coordinate descent with warm start $\hat{\beta}(\lambda_k),r(\lambda_k)$}
 \end{algorithm}
 
 In convex optimization, the Karush-Kuhn-Tucker (KKT) conditions are both necessary and sufficient for any optimal solution.  Screening rules take advantage of these KKT conditions in order to discard inactive coefficients.  For the lasso, the KKT conditions governing the optimal solution $\hat{\beta}(\lambda)$ are given by
 \begin{equation}
   \begin{aligned}
-    x_j^Tr(\lambda)/n &= \lambda \, \sign \, \hat{\beta}(\lambda)_j & & \textrm{if} \quad \hat{\beta}(\lambda)_j\neq 0,\\
-    |x_j^Tr(\lambda)/n| &\leq \lambda & & \textrm{if} \quad \hat{\beta}(\lambda)_j= 0.
+    &x_j^Tr(\lambda)/n& &= \lambda \, \sign \, \hat{\beta}(\lambda)_j & & \textrm{if} \quad \hat{\beta}(\lambda)_j\neq 0,\\
+    |&x_j^Tr(\lambda)/n|& &\leq \lambda & & \textrm{if} \quad \hat{\beta}(\lambda)_j= 0.
   \end{aligned}
 \end{equation}
-If the residuals were known, we could safely conclude that $\hat{\beta}(\lambda)_j=0$ by checking the second condition holds as a strict inequality.  The complication, of course, is that the residuals are not known until after we have solved for all the coefficients.  However, when fitting a solution path, residuals at previous $\lambda$ values provide information about residuals at the next $\lambda$ value and thus be used for screening.  Note that in Algorithm~\ref{Alg:pathwise-coordinate-descent}, the residuals $r$ are computed at each $\lambda$ value and can thus be conveniently reused for the purpose of feature screening.
+If the residuals were known, we could safely conclude that $\hat{\beta}(\lambda)_j=0$ by checking the second condition holds as a strict inequality.  The complication, of course, is that the residuals are not known until after we have solved for all the coefficients.  However, when fitting a solution path, residuals at previous $\lambda$-values provide information about residuals at the next $\lambda$-value and thus be used for screening.  Note that in Algorithm~\ref{Alg:pathwise-coordinate-descent}, the residuals $r$ are computed at each $\lambda$-value and can thus be conveniently reused for the purpose of feature screening.
 
 \subsection{Active-set Cycling}
 
@@ -151,7 +150,7 @@ The EDPP rules are derived from the dual formulation of the lasso problem (1):
 \begin{equation}
     \begin{split}
         \hat{\theta}(\lambda) = \underset{\theta\in \mathbb{R}^n}{\mathrm{argmax}}\frac{1}{2n}||y||_2^2-\frac{n\lambda}{2}||\theta-\frac{y}{n\lambda}||_2^2\\
-        subject\quad to\quad |x_j^T\theta|\leq 1,\quad \forall j=1,2,...,p.
+        \textrm{subject to } |x_j^T\theta|\leq 1,\quad \forall j=1,2,...,p.
     \end{split}
 \end{equation}
 This is minimizing the distance between $\theta$ and the rescaled response $\frac{y}{n\lambda}$ subject to the conditions $|x_j^T\theta|\leq 1$. Geometrically $\hat{\theta}(\lambda)$ can be viewed as the projection of the rescaled response $\frac{y}{n\lambda}$ onto the polytope defined by $|x_j^T\theta|\leq 1$. As $\lambda$ decreases alone the solution path, the rescaled response $\frac{y}{n\lambda}$ moves further away from 0 and the projection $\hat{\theta}(\lambda)$ moves with it. Because $\hat{\theta}(\lambda)$ is a projection onto a non-empty closed convex set, the movement of the projection can be bounded and thus $\hat{\theta}(\lambda)$ can be bounded given some previous solution $\hat{\theta}(\lambda')$ at some $\lambda'>\lambda$.
@@ -206,7 +205,7 @@ The BASIL is most beneficial when the whole $X$ matrix is to large to be fit int
 \section{Batched safe-strong rule}
 \label{sec:method}
 
-In this section, we will introduce the batched safe-strong rules, combine them with pathwise coordinate descent algorithm and propose a strategy to adaptively  start new batches.
+In this section, we will introduce the batched safe-strong rules, combine them with pathwise coordinate descent algorithm and propose a strategy to adaptively start new batches.
 
 \subsection{Batched EDPP rule}
 
@@ -230,24 +229,24 @@ Similar to SEDPP, the batched EDPP rule can be stated in the following theorem:
     \end{enumerate}
 \end{theorem}
 
-For each $\lambda$-value in the batch $\lambda_{k+1},...,\lambda_{k+B}$, the computation in (11) or (12) is the same, except for one quantity $\lambda_{k+b}$ ($\lambda_b$ in the case $k=0$). The most expensive computations are $x_j^Tr(\lambda_k)$ and $x_j^Ty$, for $j=1,2,...,p$. $x_j^Ty$ are the same for all $\lambda$-values, $x_j^Tr(\lambda_k)$ are the same for all $\lambda$-values within the batch and $x_j^T\hat{y}(\lambda_k)=x_j^Ty-x_j^Tr(\lambda_k)$, so once they are computed, they can be stored and reused to avoid more computation in that batch. These two computation take $O(np)$ time and the rest computation in (11) and (12) take at most a lower order of $O(p)$ time.
+For each $\lambda$-value in the batch $\lambda_{k+1},...,\lambda_{k+B}$, the computation in (11) or (12) is the same, except for one quantity $\lambda_{k+b}$ ($\lambda_b$ in the case $k=0$). The most expensive computations are $x_j^Tr(\lambda_k)$ and $x_j^Ty$, for $j=1,2,...,p$. $x_j^Ty$ are the same for all $\lambda$-values, $x_j^Tr(\lambda_k)$ are the same for all $\lambda$-values within the batch and $x_j^T\hat{y}(\lambda_k)=x_j^Ty-x_j^Tr(\lambda_k)$, so once they are computed, they can be stored and reused to avoid more computation in that batch. These two computations take $O(np)$ time and the rest computation in (11) and (12) take at most a lower order of $O(p)$ time.
 
 Compared to sequential methods like SEDPP, the batched method only requires one $O(np)$ computation in one batch, while SEDPP requires one $O(np)$ computation for each $\lambda$-value. Compared to one-step methods like BEDPP, if the batch size is not too large, the solution at the batch head $\lambda_k$ and the solution at some $\lambda_{k+b}$ in the batch are usually relatively close, so screening at $\lambda_{k+b}$ using solution at $\lambda_k$ will remain powerful. For one-step method, as $\lambda_k$ gets further away from $\lambda_0$, the screening power can drop drastically and
 may not be any beneficial after that.
 
 \subsection{Batched strong rule after batched EDPP rule}
 
-Because HSSR \cite{zeng2017efficient} have been shown to provide significant speedup compared to safe rules alone, we should also consider to add a strong rule screening after the batched EDPP rule screening. The batched SSR and batched EDPP rule combined will form our batched safe strong rule.
+Because HSSR \cite{zeng2017efficient} have been shown to provide significant speedup compared to safe rules alone, we should also consider adding a strong rule screening after the batched EDPP rule screening. The batched SSR and batched EDPP rule combined will form our batched safe strong rule.
 
-For ordinary SSR, the quantities $x_j^Tr(\lambda_k)$ used in (4) is already computed in the previous post-convergence check in (2). However, combined with safe rules, previous post-convergence check only need to check features that are not discarded at the previous $\lambda$-value. Thus, for features that are discarded at the previous $\lambda$-value but not at the current $\lambda$-value, their corresponding $x_j^Tr(\lambda_k)$ have not been computed yet and thus cannot be used without additional cost. Similar to the idea of BASIL \cite{qian2019fast}, we can also do the strong rule screening in batches to reduce the number of required computations.
+For ordinary SSR, the quantities $x_j^Tr(\lambda_k)$ used in (4) is already computed in the previous post-convergence check in (2). However, combined with safe rules, previous post-convergence check only needs to check features that are not discarded at the previous $\lambda$-value. Thus, for features that are discarded at the previous $\lambda$-value but not at the current $\lambda$-value, their corresponding $x_j^Tr(\lambda_k)$ have not been computed yet and thus cannot be used without additional cost. Similar to the idea of BASIL \cite{qian2019fast}, we can also do the strong rule screening in batches to reduce the number of required computations.
 
-we are going to combine batched EDPP rule and batched SSR to form the batch safe strong rule as following. First, we determine a batch $\lambda_{k+1},...,\lambda_{k+B}$, and both batched EDPP rule and batched SSR will be conducted in this batch. Second $x_j^Tr(\lambda_k)$ will be computed and stored. Then for each $\lambda_{k+b}$ in the batch, after doing batched EDPP rule screening, a batched SSR screening is carried out on the features have not been discarded by batched EDPP rule and discard features that satisfies: $|x_j^Tr(\lambda_k)/n|<2\lambda_{k+b}-\lambda_k$. Last, a post-convergence check is conducted on the features that were discarded by batched SSR but not discarded by batched EDPP rule.
+We are going to combine batched EDPP rule and batched SSR to form the batch safe strong rule as following. First, we determine a batch $\lambda_{k+1},...,\lambda_{k+B}$, and both batched EDPP rule and batched SSR will be conducted in this batch. Second $x_j^Tr(\lambda_k)$ will be computed and stored. Then for each $\lambda_{k+b}$ in the batch, after doing batched EDPP rule screening, a batched SSR screening is carried out on the features that have not been discarded by batched EDPP rule and discard features that satisfies: $|x_j^Tr(\lambda_k)/n|<2\lambda_{k+b}-\lambda_k$. Last, a post-convergence check is conducted on the features that were discarded by batched SSR but not discarded by batched EDPP rule.
 
 By choosing the same batch for batched EDPP rule and batched SSR, the quantity $x_j^Tr(\lambda_k)$ only needs to be computed once and can be used by both rules. Also, because batched EDPP rule can stay powerful, it keeps the set of features that require post-convergence check small, while because basic EDPP loses power for $\lambda$-values that are far away from $\lambda_0$, post-convergence check for HSSR will be more expensive.
 
-\subsection{Coordinate descent with Batched safe strong rule}
+\subsection{Coordinate descent with batched safe strong rule}
 
-In this section, we will show the algorithm to do pathwise coordinate descent with our batched safe strong rule screening. We will only show the algorithm for solving one batch $\lambda_{k+1},...,\lambda_{k+B}$. To solve the next batch, we just need to apply the same algorithm using the output from last batch as input. Note here for the first batch with batch head $\lambda_0$, the residuals vector $r(\lambda_0)$ is just the response $y$, because all the $\hat{\beta}(\lambda_0)$ are zero. $\{x_j^Ty\}_{j=1}^p$ need to be computed at the beginning and stored for the whole path.
+In this section, we will show the algorithm to do pathwise coordinate descent with our batched safe strong rule screening. We will only show the algorithm for solving one batch $\lambda_{k+1},...,\lambda_{k+B}$. After finishing this batch, we just need to start a new batch and apply the same algorithm using the output from last batch as input. Note here for the first batch with batch head $\lambda_0$, the residuals vector $r(\lambda_0)$ is just the response $y$, because all the $\hat{\beta}(\lambda_0)$ are zero. $\{x_j^Ty\}_{j=1}^p$ need to be computed at the beginning and stored for the whole path.
 
 \begin{algorithm}[H]
     \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}\SetKwInOut{Pre}{Pre-compute}\SetKwInOut{Initialize}{Initialize}
@@ -256,33 +255,92 @@ In this section, we will show the algorithm to do pathwise coordinate descent wi
     \Pre{ $\{x_j^Tr(\lambda_k)\}_{j=1}^p, \{x_j^T\hat{y}(\lambda_k)=x_j^Ty-x_j^Tr(\lambda_k)\}_{j=1}^p, \hat{y}(\lambda_k)=y-r(\lambda_k)$}
     \BlankLine
     \For{$b\xleftarrow{}$ 1 \KwTo B}{
-        Safe Screening: $\mathcal{S}\xleftarrow{}\{j:x_j$ not discarded by batched EDPP rule$\}$.
+        Safe Screening: $\mathcal{S}_{k+b}\xleftarrow{}\{j:x_j$ not discarded by batched EDPP rule$\}$.
         
-        Strong Screening: $\mathcal{R}\xleftarrow{}\{j\in \mathcal{S}:x_j$ not discarded by batched SSR$\}$.
+        Strong Screening: $\mathcal{R}_{k+b}\xleftarrow{}\{j\in \mathcal{S}_{k+b}:x_j$ not discarded by batched SSR$\}$.
         
         \Initialize{$\hat{\beta}(\lambda_{k+b})=\hat{\beta}(\lambda_{k+b-1}), r(\lambda_{k+b})=r(\lambda_{k+b-1})$}
         
-        \Repeat{Post-convergence check passes for all $j\in \mathcal{S}\setminus\mathcal{R}$}{
-            Conduct pathwise coordinate descent in Algorithm 1 with warm start $\hat{\beta}(\lambda_{k+b}), r(\lambda_{k+b})$, until converge. Save the outputs as $\hat{\beta}(\lambda_{k+b}), r(\lambda_{k+b})$.
+        \Repeat{Post-convergence check passes}{
+            Pathwise coordinate descent in Algorithm 1 with only features in $\mathcal{R}_{k+b}$ and with warm start $\hat{\beta}(\lambda_{k+b}), r(\lambda_{k+b})$, until converge. Save the outputs in $\hat{\beta}(\lambda_{k+b}), r(\lambda_{k+b})$.
+            
+            Post-convergence check for all $j\in \mathcal{S}_{k+b}\setminus\mathcal{R}_{k+b}$,
+            
+            \uIf{Post-convergence check does not pass}{
+                Add violating features to $\mathcal{R}_{k+b}$\;
+            }
         }
     }
     \Output{$\{\hat{\beta}(\lambda_{k+b})\}_{b=1}^B, r(\lambda_{k+B})$}
     \caption{Pathwise coordinate descent with batched safe strong rule screening}
 \end{algorithm}
 
-\subsection{Adaptive determining batch size}
-\label{sec:batch-size}
-\begin{itemize}
-    \item Analyse computing cost for each part of coordinate descent with Batched safe strong rule.
-    \item Analyse pattern of the number of rejections by EDPP rule over the solution path.
-    \item Propose a rule for starting a new batch by balancing cost of each part
-\end{itemize}
+\subsection{Adaptive batched safe strong rule}
 
-\subsection{Performance analysis}
-\begin{itemize}
-    \item Screening power
-    \item Computational complexity ?
-\end{itemize}
+In this section we will develop an algorithm to adaptively determining when to end the current batch and start a new batch, by evaluating screening power at previous $\lambda$-values in current batch. Our goal is to minimize the computation cost, so we will first analyse computation complexity for each part in Algorithm 2. Then we will propose an adaptive algorithm that can minimize the entire computation cost.
+
+\subsubsection{Complexity analysis}
+
+This complexity analysis will only consider calculations with $O(np)$ complexity. The rest calculations, those with $O(p)$ complexity for example, are not only faster in order, but also require no out-of-core computing. Calculation of ${x_j^Ty}_{j=1}^p$ is needed for pathwise coordinate descent in algorithm 1 and is not additional cost for screening, so it would not be considered either. We will assume that strong rule screening is always powerful in the sense that $|\mathcal{R}_b|=o(p)\approx0$, but safe rule screening may not. We also assume that post-convergence check will mostly pass in the first iteration and thus is only needed approximately once per $\lambda$-value.
+
+Under these assumptions, there are two dominating parts in the algorithm for each batch. First, the computation of $\{x_j^Tr(\lambda_k)\}_{j=1}^p$ at the beginning of the batch, which requires $np$ multiplications. Then, for each $\lambda$-value $\lambda_{k+b}$, the post-convergence check requires approximately $|\mathcal{S}_b\setminus\mathcal{R}_b|\approx|\mathcal{S}_b|$ KKT condition checks and each KKT condition check requires $n$ multiplications. These sum up to $n\sum_{b=1}^B|\mathcal{S}_b|$ multiplications. Combining these two parts, we will have the average cost per $\lambda$-value in the batch $\lambda_{k+1},...,\lambda_{k+B}$ to be
+
+\begin{equation}
+    \bar{T}_k(B) \approx n\frac{p}{B}+n\frac{\sum_{b=1}^B|\mathcal{S}_b|}{B}.
+\end{equation}
+
+The first term is the average cost for safe screening. Increasing batch size $B$ means reusing calculation at the batch head more times for the safe screening and thus reducing the average cost. The second term is the average cost for KKT condition checking. As the batch size $B$ increases, safe rule screening becomes less powerful and the number of KKT condition checks required ($|\mathcal{S}_b|$) increases. The following plot illustrates the effect of $B$ on $|\mathcal{S}_b|$ in a real data set solved over a path of $K=100$ $\lambda$-values. The y axis is the proportion of discarded features, calculated as $1-|\mathcal{S}_b|/p$.
+
+\begin{center}
+    \includegraphics[scale = 0.5]{plots/batchsizes.png}
+\end{center}
+
+BEDPP (Basic EDPP) rule is the special case of batched EDPP with only one batch of the largest possible size $B=K=100$. When the batch is large, the safe rule screening will eventually fail to discard any features and make the KKT condition checking cost increase to its maximum $np$. SEDPP rule is the special case where all batches have the smallest possible batch size $B=1$. It remains very powerful along the path, making the KKT condition checking cost almost 0, but the safe screening itself is costly and takes $np$ time per $\lambda$-value. Batched EDPP can strike a balance between BEDPP and SEDPP. In this example, using batches with fixed sizes $B=10$ can reduce the safe screening cost by 90\% compared to SEDPP and reduce the KKT checking cost by 50\% to more than 90\% compared BEDPP.
+
+This example also shows the performance of batch EDPP rule changes along the path of $\lambda$-values. Take the batched EDPP with $B=10$ as an example. For the first batch of 10 $\lambda$-values, the batched EDPP stays powerful even at the end, which means this batch is still exploitable. We may want to extend this batch to reduce average safe screening cost without harming the KKT condition checking cost much. For the last batch however, the screening power is close to 0 for the last few $\lambda$-values, which means this batch becomes useless at this point. Starting a new batch earlier can greatly reduce the KKT condition checking cost with relatively small increase in safe screening cost. Also, the performance of batch EDPP rule also depends on many factors such as the data, the range of $\lambda$-values and spacing between $\lambda$-values. These suggest that starting a new batch after every fixed number of $\lambda$-values cannot not be consistently efficient and we want a method that can automatically determine whether to start a new batch given current performance.
+
+\subsubsection{Adaptive batch starting algorithm}
+
+From previous example, we assume the average cost is a convex function of batch size $B$ which decreases first and then after some optimal value increases again. If we want to minimize the average cost per $\lambda$-value, we need to end the current batch when extending the current batch by 1 $\lambda$-value will increase the average cost. That is, end the current batch at $\lambda_{B-1}$ when $\bar{T}_k(B)>\bar{T}_k(B-1)$. From (13), this condition will be:
+
+\begin{equation}
+    (B-1)|\mathcal{S}_B|-\sum_{b=1}^{B-1}|\mathcal{S}_b|>p.
+\end{equation}
+In practice, we will end the batch at $\lambda_B$ and start at $\lambda_{B+1}$ instead, because evaluating $\mathcal{S}_B$ needs screening at $\lambda_B$ and if we have already done the screening, it would be a waste not to use the screening result.
+
+This batch restarting condition is a greedy condition that only considers the current batch cost. In practice, we cannot know about future batches so this is the most reasonable condition. In fact, it can handle the three most common scenarios well. First, if the screening power stays high, meaning $\mathcal{S}_b$ is small for all $b$, then the left-hand-side of (14) will be small and thus at this point we will extend the current batch to further exploit it. Second, if the screening power has been high for a while but dropped suddenly, meaning $\mathcal{S}_B$ is large but $\mathcal{S}_b$ are mostly small for $b=1,2,...,B-1$, then the left-hand-side of (14) will be large and we will end the useless current batch and start a new batch. Last, if the screening power drops dramatically right after the beginning of the current batch, meaning $\mathcal{S}_b$ are close to $p$ for $b=2,3,...,B$, then the left-hand-side of (14) will be approximately $p-|\mathcal{S}_1|<p$. We will not end the current batch although it becomes useless, because if we did, the next batch would be useless as well.
+
+Combined with Algorithm 2, we will propose the pathwise coordinate descent with adaptive batched safe strong rule screening. After ending a batch, if there are still unsolved $\lambda$-values in the path $\lambda_0,\lambda_1,...,\lambda_K$, we can just start a new batch with the rest unsolved $\lambda$-values and apply the same algorithm.
+
+\begin{algorithm}[H]
+    \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}\SetKwInOut{Pre}{Pre-compute}\SetKwInOut{Initialize}{Initialize}
+    \SetAlgoLined
+    \Input{$\{x_j\}_{j=1}^p, \{x_j^Ty\}_{j=1}^p, \hat{\beta}(\lambda_k), r(\lambda_k), \lambda_{k+1},...,\lambda_{K}$}
+    \Pre{ $\{x_j^Tr(\lambda_k)\}_{j=1}^p, \{x_j^T\hat{y}(\lambda_k)=x_j^Ty-x_j^Tr(\lambda_k)\}_{j=1}^p, \hat{y}(\lambda_k)=y-r(\lambda_k)$}
+    \BlankLine
+    $B\xleftarrow{}1$ 
+    
+    \Repeat{$(B-1)|\mathcal{S}_B|-\sum_{b=1}^{B-1}|\mathcal{S}_{b}|>p$ or $B>K$}{
+        Safe Screening: $\mathcal{S}_{k+B}\xleftarrow{}\{j:x_j$ not discarded by batched EDPP rule$\}$.
+        
+        Strong Screening: $\mathcal{R}_{k+B}\xleftarrow{}\{j\in \mathcal{S}_{k+B}:x_j$ not discarded by batched SSR$\}$.
+        
+        \Initialize{$\hat{\beta}(\lambda_{k+B})=\hat{\beta}(\lambda_{k+B-1}), r(\lambda_{k+B})=r(\lambda_{k+B-1})$}
+        
+        \Repeat{Post-convergence check passes}{
+            Pathwise coordinate descent in Algorithm 1 with only features in $\mathcal{R}_{k+B}$ and with warm start $\hat{\beta}(\lambda_{k+B}), r(\lambda_{k+B})$, until converge. Save the outputs in $\hat{\beta}(\lambda_{k+B}), r(\lambda_{k+B})$.
+            
+            Post-convergence check for all $j\in \mathcal{S}_{k+B}\setminus\mathcal{R}_{k+B}$,
+            
+            \uIf{Post-convergence check does not pass}{
+                Add violating features to $\mathcal{R}_{k+B}$\;
+            }
+        }
+        $B\xleftarrow{}B+1$
+    }
+    \Output{$\{\hat{\beta}(\lambda_{k+b})\}_{b=1}^B, r(\lambda_{k+B}),\lambda_{k+B+1},...,\lambda_K$}
+    \caption{Pathwise coordinate descent with adaptive batched safe strong rule screening}
+\end{algorithm}
 
 \section{Extension to other lasso type problems}
 \label{sec:4}
