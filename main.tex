@@ -114,7 +114,7 @@ After computing the solution, a post-convergence KKT conditions check is perform
 
 \subsection{Strong rules}
 
-Sequential strong rule (SSR) \cite{tibshirani2011regression} is a fast and powerful feature screening rule. Given the solution $\hat{\beta}(\lambda_k)$ at $\lambda_k$, we can compute the residual vector as $r(\lambda_k)=y-X\hat{\beta}(\lambda_k)$. The SSR discard the $j$-th feature at $\lambda_{k+1}$ if:
+Sequential strong rule (SSR) \cite{tibshirani2011regression} is a fast and powerful feature screening rule. Given the solution $\hat{\beta}(\lambda_k)$ at $\lambda_k$, we can compute the residual vector as $r(\lambda_k)=y-X\hat{\beta}(\lambda_k)$. The SSR discards the $j$-th feature at $\lambda_{k+1}$ if:
 
 \begin{equation}
     |x_j^Tr(\lambda_k)/n|<2\lambda_{k+1}-\lambda_k.
@@ -171,7 +171,7 @@ so bounding $\hat{\theta}(\lambda)$ is essentially bounding the residual vector 
 \begin{theorem}[SEDPP]
     For the lasso problem (1), let $\lambda_0:=\max_j|x_j^Ty/n|$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$. Under condition (3)
     \begin{enumerate}
-        \item For any $k=1,2,...,K-1$, given $\hat{\beta}(\lambda_k)$, $r(\lambda_k)$ and $\hat{y}(\lambda_k):=y-X\hat{\beta}(\lambda_k)$, then $\hat{\beta}_j(\lambda_{k+1})=0$ if
+        \item For any $k=1,2,...,K-1$, given $\hat{\beta}(\lambda_k)$, $r(\lambda_k)$ and $\hat{y}(\lambda_k):=X\hat{\beta}(\lambda_k)$, then $\hat{\beta}_j(\lambda_{k+1})=0$ if
         \begin{equation}
             \begin{split}
                 &\left|2\lambda_{k+1}x_j^Tr(\lambda_k)+(\lambda_k-\lambda_{k+1})\left( x_j^Ty-\frac{y^T\hat{y}(\lambda_k)x_j^T\hat{y}(\lambda_k)}{||\hat{y}(\lambda_k)||_2^2}\right)\right|\\&<2n\lambda_k\lambda_{k+1}-(\lambda_k-\lambda_{k+1})\sqrt{n||y||_2^2-\frac{n(y^T\hat{y}(\lambda_k))^2}{||\hat{y}(\lambda_k)||_2^2}}
@@ -216,7 +216,7 @@ Similar to SEDPP, the batched EDPP rule can be stated in the following theorem:
 \begin{theorem}[Batched EDPP]
     For the lasso problem (1), let $\lambda_0:=\max_j|x_j^Ty/n|$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$. Under condition (3)
     \begin{enumerate}
-        \item For any $k=1,2,...,K-1$, given $\hat{\beta}(\lambda_k)$, $r(\lambda_k)$ and $\hat{y}(\lambda_k):=y-X\hat{\beta}(\lambda_k)$, then for some $B$ and any $b$ s.t. $k<k+b\leq k+B\leq K$, $\hat{\beta}_j(\lambda_{k+b})=0$ if
+        \item For any $k=1,2,...,K-1$, given $\hat{\beta}(\lambda_k)$, $r(\lambda_k)$ and $\hat{y}(\lambda_k):=X\hat{\beta}(\lambda_k)$, then for some $B$ and any $b$ s.t. $k<k+b\leq k+B\leq K$, $\hat{\beta}_j(\lambda_{k+b})=0$ if
         \begin{equation}
             \begin{split}
                 &\left|2\lambda_{k+b}x_j^Tr(\lambda_k)+(\lambda_k-\lambda_{k+b})\left( x_j^Ty-\frac{y^T\hat{y}(\lambda_k)x_j^T\hat{y}(\lambda_k)}{||\hat{y}(\lambda_k)||_2^2}\right)\right|\\&<2n\lambda_k\lambda_{k+b}-(\lambda_k-\lambda_{k+b})\sqrt{n||y||_2^2-\frac{n(y^T\hat{y}(\lambda_k))^2}{||\hat{y}(\lambda_k)||_2^2}}
@@ -344,6 +344,68 @@ Combined with Algorithm 2, we will propose the pathwise coordinate descent with 
 
 \section{Extension to other lasso type problems}
 \label{sec:4}
+
+\subsection{Batched safe strong rule for sparse logistic regression}
+
+The sparse logistic regression model can be defined as:
+
+\begin{equation}
+    \hat{\beta}(\lambda)=\underset{(\beta,\beta_0)\in \mathbb{R}^p\times\mathbb{R}^1}{\mathrm{argmin}}-\frac{1}{n}\sum_{i=1}^n\{y_i\log\pi_i(\beta)+(1-y_i)\log(1-\pi_i(\beta))\}+\lambda||\beta||_1,
+\end{equation}
+where $\pi(\beta)=\{\pi_i(\beta)\}_{i=1}^n=\{p(y_i=1|x_{i1},x_{i2},...,x_{ip})\}_{i=1}^n=\{e^{\eta_i(\beta)}/(1+e^{\eta_i(\beta)})\}_{i=1}^n$ is the predicted value vector and $\eta(\beta)=X\beta$ is the linear function. $X$ are still the $n\times p$ standardized feature matrix  but in this model the $y\in\{0,1\}^n$ is a binary response vector. $\beta$ is still the $p\times1$ coefficient vector but we also need a $\beta_0$ as the intercept.
+
+We can use SSR to do the strong rule screening with a small change according to the KKT condition. The residual vector now is $r(\lambda_k)=y-\pi(\hat{\beta}(\lambda_k))$. Then the SSR discards the $j$-th feature at $\lambda_{k+1}$ if (4) holds.
+
+For safe rule screening, instead of EDPP rules, Slores (sparse logistic regression screening rule)\cite{wang2014safe} is used. It was proposed as an one-step rule but we will extend it to a batched rule. Let $\Tilde{y}=2y-1\in\{-1,1\}^n$, $r(\lambda_k)=y-\pi(\hat{\beta}(\lambda_k))$
+
+\begin{theorem}[Batched Slores]
+For the sparse logistic regression model (15), let $\lambda_0:=\max_j|x_j^Ty/n|$, $\Tilde{y}=2y-1\in\{-1,1\}^n$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$. $\forall\theta\in(0,1)^n$, let $x_*=argmax_{x_j}|x_j^Ty/n|$ and
+
+\begin{equation}
+    \begin{split}
+        g(\theta)&=\frac{1}{n}\sum_{i=1}^n\{\theta_i\log \theta_i+(1-\theta_i)\log(1-\theta_i)\},\\
+    \nabla g_i(\theta) &= \frac{1}{n}\log\frac{\theta_i}{1-\theta_i}.
+    \end{split}
+\end{equation}
+
+Under condition (3), for any $k=1,2,...,K-1$, assume $\hat{\beta}(\lambda_k)$, $r(\lambda_k)=y-\pi(\hat{\beta}(\lambda_k))$, $\theta(\lambda_k)=\{r_i(\lambda_k)\Tilde{y}_i\}_{i=1}^n$ and $\hat{y}(\lambda_k):=\pi(\hat{\beta}(\lambda_k))$ are known. For some $B$ and any $b$ s.t. $k<k+b\leq k+B\leq K$, let
+
+\begin{equation}
+    R(\lambda_{k+b})=\sqrt{\frac{n}{2}\bigg[g\bigg(\frac{\lambda_{k+b}}{\lambda_k}\theta(\lambda_k)\bigg)-g\bigg(\theta(\lambda_k)\bigg)+\bigg(1-\frac{\lambda_{k+b}}{\lambda_k}\bigg)\bigg(\nabla g\big(\theta(\lambda_k)\big)\bigg)^T\theta(\lambda_k)\bigg]},
+\end{equation}
+
+$d(\lambda_{k+b})=\sqrt{n}(\lambda_k-\lambda_{k+b})/R(\lambda_{k+b})$. For $\xi = -1,1$ and $j=1,2,...,p$,
+
+\begin{enumerate}
+    \item If $-\xi sign(x_*^Ty)x_j^Tx_*\geq nd(\lambda_{k+b})$, then
+    
+    \begin{equation}
+        T_\xi(\lambda_{k+b},x_j;r(\lambda_k))=\sqrt{n}R(\lambda_{k+b})-\xi x_j^Tr(\lambda_k);
+    \end{equation}
+    
+    \item If $-\xi sign(x_*^Ty)x_j^Tx_*< nd(\lambda_{k+b})$, then
+    
+    \begin{equation}
+        T_\xi(\lambda_{k+b},x_j;r(\lambda_k))=R(\lambda_{k+b})\sqrt{n+nu_\xi^2-2\xi u_\xi sign(x_*^Ty)x_j^Tx_*}-nu_\xi(\lambda_k-\lambda_{k+b})-\xi x_j^Tr(\lambda_k),
+    \end{equation}
+    where
+    \begin{align}
+        u_\xi&=\frac{-\xi a_1+\sqrt{\Delta}}{2a_2},\\
+        a_0&=(x_j^Tx_*)^2-n^2d^2(\lambda_{k+b}),\nonumber\\
+        a_1&=-2n\,sign(x_*^Ty)x_j^Tx_*\big(1-d^2(\lambda_{k+b})\big),\nonumber\\
+        a_2&=n^2\big(1-d^2(\lambda_{k+b})\big),\nonumber\\
+        \Delta&=a_1^2-4a_0a_1.\nonumber
+    \end{align}
+\end{enumerate}
+
+Then $\hat{\beta}_j(\lambda_{k+b})=0$ if
+        \begin{equation}
+            \max_{\xi=\pm1} T_\xi(\lambda_{k+b},x_j;r(\lambda_k))
+        \end{equation}
+\end{theorem}
+
+When computing the batched Slores, $\{x_j^Ty\}_{j=1}^p$ and $\{x_j^Tx_*\}_{j=1}^p$ need to be computed only once, stored and reused for the whole solution path $\lambda_0>\lambda_1>...>\lambda_K$. Other than those two terms, the only term that requires expensive $O(np)$ computation is $\{x_j^Tr(\lambda_k)\}_{j=1}^p$, which only needs to be computed once for each batch. Thus algorithm 3 for adaptive batched safe strong rule can be done with Slores rule instead of EDPP rule to do screening for sparse logistic regression model.
+
 
 \begin{itemize}
     \item Logistic regression with Slores instead of EDPP
