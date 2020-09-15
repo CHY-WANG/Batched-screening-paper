@@ -18,8 +18,8 @@
 \providecommand{\note}[1]{\textcolor{red}{#1}}
 \providecommand{\lam}{\lambda}
 
-\title{Efficient Feature Screening for Lasso-Type
-Problems via Batched Safe-Strong Rules}
+\title{Adaptive Safe Strong Screening for Efficient Lasso-Type
+Problems Optimization over the Solution Path}
 \author{Chuyi Wang\\Department of Statistics and Actuarial Sciences\\University of Iowa
   \and
   Patrick Breheny\\Department of Biostatistics\\University of Iowa}
@@ -39,7 +39,7 @@ where $y$ is the $n\times 1$ response vector correspond to $n$ observations, $X=
 
 The lasso model has several attractive properties compared to least squares regression, including increased stability of estimation, increased prediction accuracy, and automatic variable selection arising from the fact that it yields sparse estimates of $\beta$.  As a result, it is widely applied in different fields, such as gene expression data analysis, image recognition and text mining, and has been extended in several ways, such as group lasso\citep{yuan2006model}, elastic net\citep{zou2005regularization} and sparse generalized linear models. Because of its wide popularity, solving the lasso model efficiently is an important topic in statistics and machine learning.
 
-Because the optimal value of $\lambda$ is not known in advance, typical practice is to solve for $\beta$ along a sequence of values of the tuning parameter $\lambda$, known as the solution path.  Pathwise algorithms can be efficiently implemented by using the solution at a previous $\lambda$ value as a ``warm start'' for the next value of $\lambda$.  In particular, the pathwise coordinate descent algorithm\citep{friedman2007pathwise}, which optimizes $\beta(\lambda)$ one element at a time with the remaining coordinates held fixed, has been shown to outperform other lasso algorithms such as LARS (least angle regression)\citep{efron2004least}, especially in high dimensional settings where $p$ is large. In sparse settings, it scales up very well with a computational cost of approximately $O(np)$. As a result, it is widely used to fit the lasso and other penalized regression models.
+Because the optimal value of $\lambda$ is not known in advance, typical practice is to solve for $\beta$ along a sequence of values of the tuning parameter $\lambda$, known as the solution path.  Pathwise algorithms can be efficiently implemented by using the solution at a previous $\lambda$ value as a ``warm start'' for the next value of $\lambda$.  In particular, the pathwise coordinate descent algorithm\citep{friedman2007pathwise}, which optimizes $\beta(\lambda)$ one element at a time with the remaining coordinates held fixed, has been shown to outperform other lasso algorithms such as LARS (least angle regression)\citep{efron2004least}, especially in high dimensional settings where $p$ is large. In sparse settings, it scales up very well with a computational cost of approximately $O(np)$. 
 
 However, modern data collection and storage techniques allow researchers to measure an increasingly large number of features, which introduce additional computational challenges. In particular, it may not be possible to store the feature matrix, which can require many GBs of memory to store, in memory. One can resolve this problem by using a memory mapping package such as \textbf{bigmemory}, which allows us to store the feature matrix on disk and read it portions of it as needed; however, this results in frequent reading from disk, which is extremely slow compared to other parts of the algorithm and becomes a bottleneck with respect to the computational burden of fitting lasso models on very large data sets.
 
@@ -47,18 +47,18 @@ One promising technique to address this challenge is feature screening. The lass
 
 There are two important categories of features screening rules: ``strong'' rules\citep{tibshirani2011regression}\citep{qian2019fast}, which occasionally incorrectly discard some active features, and ``safe'' rules\citep{ghaoui2010safe,wang2013lasso,xiang2012fast, xiang2011learning}, which are guaranteed never to do so.  As one might expect, strong rules tend to be easier to calculate; however, because mistakes are possible, one must add a post-convergence check to ensure that no features were incorrectly discarded. This check is not necessary with safe rules. However, safe rules are considerably less powerful at discarding features than strong rules. More recently, hybrid approaches \citep{zeng2017efficient} combining the two types of rules have been shown to be more efficient than either type of rule alone.
 
-Previous screening rules can also be divided into two categories, sequential rules and one-step rules, by how the screening is carried out along the path of $\lambda$ values. Sequential rules do heavy computation for each $\lambda$ values, so they are slower but relatively powerful at each $\lambda$ values. One-step rules only require heavy computation at the beginning and thus are faster but they cannot remain powerful along the path for long. 
+Previous safe screening rules can also be divided into two categories, sequential rules and one-step rules, by how the screening is carried out along the path of $\lambda$ values. Sequential rules do heavy computation for each $\lambda$ values using solution from its previous $\lambda$ value, so they are slower but relatively powerful at each $\lambda$ values. One-step rules only require heavy computation at the beginning and thus are faster but they cannot remain powerful along the path for long. 
 
-In this paper, we proposed an adaptive batched screening scheme that changes how screening is done along the path of $\lambda$ values and implement it into hybrid approaches to form adaptive batched safe-strong rules. We divided the set of $\lambda$ values into batches and screening within each batch is based on the same solution at one $\lambda$ value at the beginning of the batch. This screening scheme helps avoid disadvantages of both sequential rules and one-step rules. On one hand, basing on the same solution avoids many costly computation within a batch and on the other hand, referring to solution at a close $\lambda$ value provides more screening power. An adaptive choice of batches sizes are applied using the screening performance from previous $\lambda$ values to better balance these two effects. It will be shown that our adaptive rule can greatly reduce the computation time and outperform other methods under all scenarios. Similar to hybrid approaches, our method can also utilize any member of safe rules, giving it the potential for further speed up given new safe rules and the flexibility to extend to other lasso type models. For example we extended the method to work with logistic regression with lasso penalty.
+In this paper, we proposed an adaptive safe screening scheme that changes how screening is done along the path of $\lambda$ values. We do safe screening on $\lambda$ values alone the path referencing to the same solution at the $\lambda$ value in the beginning, as in one-step rules, until it is beneficial to update to a new $\lambda$ value as the reference. This screening scheme helps avoid disadvantages of both sequential rules and one-step rules. On one hand, reusing the same solution as reference avoids many costly computation before updating and on the other hand, referring to solution at a closer $\lambda$ value provides more screening power. An adaptive scheme determines when to update the reference based on the previous screening performance, to better balance these two effects. It will be shown that our adaptive rule can greatly reduce the computation time and outperform other methods under all scenarios. Following the hybrid approaches, we also combined our approach with strong rules to form adaptive safe strong rules. Similar to hybrid approaches, our method can also utilize any member of safe rules, giving it the potential for further speed up given new safe rules and the flexibility to extend to other lasso type models. For example we extended the method to work with logistic regression with lasso penalty and group lasso.
 
 This manuscript provides a brief review of existing feature screening rules in Section\ref{sec:existing} as well as the following novel contributions:
 
 \begin{itemize}
-    \item A new feature screening framework (Section ?3.2??), which does screening in batches of $\lambda$ values with any safe screening rules, which can generate a family of more efficient and scalable screening rule, compared to previous screening rules that are either sequential or one-step.
-    \item Two specific applications of this framework, Batch-SSR-SEDPP and Batch-SSR-Slores, for fitting lasso-penalized linear regression and logistic regression models, respectively (Section ?3.3??).
-    \item An algorithm to adaptively determine efficient batch sizes (Section \ref{sec:batch-size}).
+    \item A new feature screening framework (Section ?3.2??), which updates the reference for screening alone the grid of $\lambda$ values on any combination of strong screening rules and safe screening rules, which can generate a family of more efficient and scalable screening rules, compared to previous screening rules that are either sequential or one-step.
+    \item Three specific applications of this framework, Ada-SSR-EDPP, Ada-SSR-Slores and Ada-SSR-EDPP for group lasso, for fitting lasso-penalized linear regression and logistic regression models, respectively (Section ?3.4,4.1??).
+    \item An algorithm to determine when to update to a new reference $\lambda$ value for best efficiency (Section \ref{sec:adaptive}).
     \item Simulation studies (Section~\ref{sec:sim}) and real data analysis (Section~\ref{sec:real-data}) under a variety of scenarios, including testing data sets larger than memory, which showed that the proposed algorithms outperform other approaches in all cases, with substantial speed up.
-    \item The Batch-SSR-SEDPP and Batch-SSR-Slores were implemented and added as new options to the publicly accessible \textbf{R} package \textbf{biglasso}\citep{zeng2017biglasso}, which was used to carry out the analyses in this manuscript.
+    \item The Ada-SSR-SEDPP and Ada-SSR-Slores were implemented and added as new options to the publicly accessible \textbf{R} package \textbf{biglasso}\citep{zeng2017biglasso}, which was used to carry out the analyses in this manuscript.
 \end{itemize}
 
 \section{Existing feature screening rules}
@@ -110,7 +110,7 @@ If the residuals were known, we could safely conclude that $\hat{\beta}(\lambda)
 \subsection{Active-set Cycling}
 \label{sec:active}
 
-Before introducing current screening rules, there is also a similar idea to reduce the number of features for part of computation, called active-set cycling (AC) \citep{lee2007efficient}. When solving the coefficients for at $\lambda_{k+1}$, first only consider features whose coefficients were non-zero at $\lambda_k$ and discard other features with zero coefficients at $\lambda_k$. We compute the solution for the smaller model with these reduced number of coefficients.
+Before introducing current screening rules, there is also a similar idea to reduce the number of features for part of computation, called active-set cycling (AC) \citep{lee2007efficient}. It can be implemented on top of any lasso algorithm with no additional cost. When solving the coefficients for at $\lambda_{k+1}$, first only consider features whose coefficients were non-zero at $\lambda_k$ and discard other features with zero coefficients at $\lambda_k$. We compute the solution for the smaller model with these reduced number of coefficients.
 
 After computing the solution, a post-convergence KKT conditions check is performed. Because the KKT conditions are sufficient for the solution to be optimal, if there is no violation, the solution to the smaller model will be exactly the same as if we solve the model with all features. If there are violations, corresponding features will be added to the model and this procedure will repeat. Because features don't enter the model very frequently, usually small number of repetitions will be needed and thus the algorithm provides substantial speed up.
 
@@ -187,7 +187,7 @@ In BEDPP rule (9), the most costly parts of computation that take O(np) time are
 
 In SEDPP rule (10), it requires computation of $\{x_j^Ty\}_{j=1}^p$ and $\{x_j^Tr(\lambda_k)\}_{j=1}^p$ ($x_j^T\hat{y}(\lambda_k)$ can be computed as $x_j^Ty-x_j^Tr(\lambda_k)$). For screening at every $\lambda_{k+1}$, $\{x_j^Tr(\lambda_k)\}_{j=1}^p$ need to be recalculated and this step takes O(np) time. Thus SEDPP is a sequential rule and computation of the sequence takes O(npK) time.
 
-BEDPP is much faster, but at each $\lambda_k$, it is bounding $r(\lambda_k)$ by comparing it to $r(\lambda_0)=y$. As $\lambda_k$ gets further away from $\lambda_0$, this bound becomes less precise and the screening rule becomes less powerful. SEDPP is slower, but at each $\lambda_{k+1}$, it is comparing $r(\lambda_{k+1})$ to $r(\lambda_k)$. Because $\lambda_{k+1}$ and $\lambda_k$ are close, the bound will be tight and screening will keep being powerful.
+BEDPP is much faster, but at each $\lambda_k$, it is bounding $r(\lambda_k)$ using $r(\lambda_0)=y$ as a reference. As $\lambda_k$ gets further away from $\lambda_0$, this bound becomes less precise and the screening rule becomes less powerful. SEDPP is slower, but at each $\lambda_{k+1}$, it uses $r(\lambda_{k})$ as the reference. Because $\lambda_{k+1}$ and $\lambda_k$ are close, the bound will be tight and screening will keep being powerful.
 
 \subsection{Hybrid safe-strong rules}
 
@@ -204,18 +204,18 @@ The BASIL is most beneficial when the whole $X$ matrix is to large to be fit int
 
 
 
-\section{Batched safe-strong rule}
+\section{Adaptive safe-strong rule}
 \label{sec:method}
 
-In this section, we will introduce the batched safe-strong rules, combine them with pathwise coordinate descent algorithm and propose a strategy to adaptively start new batches.
+In this section, we will introduce the framework of adaptive safe-strong rules, implement them with EDPP as the safe rule to form Ada-SSR-EDPP and propose a strategy to adaptively updating the reference.
 
-\subsection{Batched EDPP rule}
+\subsection{Adaptive EDPP safe rule}
 
-From the SEDPP rule (10) in Theorem 2.2, we can do screening at $\lambda_{k+1}$ given the solution at $\lambda_k$. Now consider we are solving the lasso problem along the path $\lambda_0,...,\lambda_k,\lambda_{k+2},...,\lambda_K$ instead. Using the SEDPP rule, we can do screening at $\lambda_{k+2}$ as well, given the solution at $\lambda_k$, which is considered the previous solution now. Similarly, given the solution at $\lambda_k$, we can do screening for a batch of $B$ $\lambda$-values: $\lambda_{k+1},...,\lambda_{k+B}$ and then all the discarded features are guaranteed to be zero. Batched EDPP is still a safe rule, but it is neither sequential nor one-step.
+From the SEDPP rule (10) in Theorem 2.2, we can do screening at $\lambda_{k+1}$ given the solution at $\lambda_k$. Now consider we are solving the lasso problem along the path $\lambda_0,...,\lambda_k,\lambda_{k+2},...,\lambda_K$ instead. Using the SEDPP rule, we can do screening at $\lambda_{k+2}$ as well, given the solution at $\lambda_k$, which is considered the previous solution now. Similarly, with solution at $\lambda_k$ as the reference, we can keep screening for a number of $\lambda$-values: $\lambda_{k+1},\lambda_{k+2},...$ until it is beneficial to update the solution at some $\lambda_{K+B}$ as the new reference and in this way all the discarded features are guaranteed to be zero. Adaptive EDPP is still a safe rule, but it is neither sequential nor one-step.
 
-Similar to SEDPP, the batched EDPP rule can be stated in the following theorem:
+Similar to SEDPP, the Adaptive EDPP rule can be stated in the following theorem:
 
-\begin{theorem}[Batched EDPP]
+\begin{theorem}[Adaptive EDPP]
     For the lasso problem (1), let $\lambda_0:=\max_j|x_j^Ty/n|$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$. Under condition (2)
     \begin{enumerate}
         \item For any $k=1,2,...,K-1$, given $\hat{\beta}(\lambda_k)$, $r(\lambda_k)$ and $\hat{y}(\lambda_k):=X\hat{\beta}(\lambda_k)$, then for some $B$ and any $b$ s.t. $k<k+b\leq k+B\leq K$, $\hat{\beta}_j(\lambda_{k+b})=0$ if
@@ -231,127 +231,109 @@ Similar to SEDPP, the batched EDPP rule can be stated in the following theorem:
     \end{enumerate}
 \end{theorem}
 
-For each $\lambda$-value in the batch $\lambda_{k+1},...,\lambda_{k+B}$, the computation in (11) or (12) is the same, except for one quantity $\lambda_{k+b}$ ($\lambda_b$ in the case $k=0$). The most expensive computations are $x_j^Tr(\lambda_k)$, $x_j^Tx_*$ and $x_j^Ty$, for $j=1,2,...,p$. $x_j^Ty$ and $x_j^Tx_*$ are the same for all $\lambda$-values, $x_j^Tr(\lambda_k)$ are the same for all $\lambda$-values within the batch and $x_j^T\hat{y}(\lambda_k)=x_j^Ty-x_j^Tr(\lambda_k)$, so once they are computed, they can be stored and reused to avoid more computation in that batch. These two computations take $O(np)$ time and the rest computation in (11) and (12) take at most a lower order of $O(p)$ time.
+For each $\lambda$-value in one update $\lambda_{k+1},...,\lambda_{k+B}$, the computation in (11) or (12) is the same, except for one quantity $\lambda_{k+b}$ ($\lambda_b$ in the case $k=0$). The most expensive computations are $x_j^Tr(\lambda_k)$, $x_j^Tx_*$ and $x_j^Ty$, for $j=1,2,...,p$. $x_j^Ty$ and $x_j^Tx_*$ are the same for all $\lambda$-values, $x_j^Tr(\lambda_k)$ are the same for all $\lambda$-values within the update and $x_j^T\hat{y}(\lambda_k)=x_j^Ty-x_j^Tr(\lambda_k)$, so once they are computed, they can be stored and reused to avoid more computation in that update. These two computations take $O(np)$ time and the rest computation in (11) and (12) take at most a lower order of $O(p)$ time.
 
-Compared to sequential methods like SEDPP, the batched method only requires one $O(np)$ computation in one batch, while SEDPP requires one $O(np)$ computation for each $\lambda$-value. Compared to one-step methods like BEDPP, if the batch size is not too large, the solution at the batch head $\lambda_k$ and the solution at some $\lambda_{k+b}$ in the batch are usually relatively close, so screening at $\lambda_{k+b}$ using solution at $\lambda_k$ will remain powerful. For one-step method, as $\lambda_k$ gets further away from $\lambda_0$, the screening power can drop drastically and
-may not be any beneficial after that.
+Compared to one-step methods like BEDPP, after updating, the solution as the reference at $\lambda_k$ and the solution at some $\lambda_{k+b}$ in that update are usually relatively close, so screening at $\lambda_{k+b}$ using solution at $\lambda_k$ will remain powerful. For one-step method, as $\lambda_k$ gets further away from $\lambda_0$, the screening power can drop drastically and
+may not be any beneficial after that. Compared to sequential methods like SEDPP, the adaptive method only requires one $O(np)$ computation in one update, while SEDPP requires one $O(np)$ computation for each $\lambda$-value. The framework of adaptive safe screening can also be easily applied to other sequential safe rules, to form a family of adaptive safe rules to achieve the same improvement.
 
-\subsection{Batched strong rule after batched EDPP rule}
+\subsection{Adaptive safe strong rule on top of adaptive EDPP rule}
 
-Because HSSR \citep{zeng2017efficient} have been shown to provide significant speedup compared to safe rules alone, we should also consider adding a strong rule screening after the batched EDPP rule screening. The batched SSR and batched EDPP rule combined will form our batched safe strong rule.
+Because HSSR \citep{zeng2017efficient} have been shown to provide significant speedup compared to safe rules alone, we should also consider adding a strong rule screening after the adaptive EDPP rule screening. The SSR and adpative EDPP rule combined will form our adaptive safe strong rule: Ada-SSR-EDPP.
 
-For ordinary SSR, the quantities $x_j^Tr(\lambda_k)$ used in (4) is already computed in the previous post-convergence check in (2). However, combined with safe rules, previous post-convergence check only needs to check features that are not discarded at the previous $\lambda$-value. Thus, for features that are discarded at the previous $\lambda$-value but not at the current $\lambda$-value, their corresponding $x_j^Tr(\lambda_k)$ have not been computed yet and thus cannot be used without additional cost. Similar to the idea of BASIL \citep{qian2019fast}, we can also do the strong rule screening in batches to reduce the number of required computations.
+This combination is not trivial. For ordinary SSR, the quantities $x_j^Tr(\lambda_k)$ used in (4) is already computed in the previous post-convergence check in (2). However, combined with safe rules, previous post-convergence check only needs to check features that are not discarded at the previous $\lambda$-value. Thus, for features that are discarded at the previous $\lambda$-value but not at the current $\lambda$-value, their corresponding $x_j^Tr(\lambda_k)$ have not been computed yet and thus cannot be used without additional cost. Similar to the idea of BASIL \citep{qian2019fast}, we can also do the strong rule screening adaptively by using the latest $x_j^Tr(\lambda_k)$ available, which is computed by adaptive EDPP rule at the latest update, to reduce the number of required computations.
 
-We are going to combine batched EDPP rule and batched SSR to form the batch safe strong rule as following. First, we determine a batch $\lambda_{k+1},...,\lambda_{k+B}$, and both batched EDPP rule and batched SSR will be conducted in this batch. Second $x_j^Tr(\lambda_k)$ will be computed and stored. Then for each $\lambda_{k+b}$ in the batch, after doing batched EDPP rule screening, a batched SSR screening is carried out on the features that have not been discarded by batched EDPP rule and discard features that satisfies: $|x_j^Tr(\lambda_k)/n|<2\lambda_{k+b}-\lambda_k$. Last, a post-convergence check is conducted on the features that were discarded by batched SSR but not discarded by batched EDPP rule.
+We are going to combine adaptive EDPP rule and SSR to form the Ada-SSR-EDPP as following. Suppose we have a latest updated reference $\lambda_k$ with $x_j^Tr(\lambda_k)$ computed and want the solution at some following $\lambda_{k+b}$. First, we do adaptive EDPP rule screening. Second, an adaptive SSR screening is carried out on the features that have not been discarded by adaptive EDPP rule and discard features that satisfies: $|x_j^Tr(\lambda_k)/n|<2\lambda_{k+b}-\lambda_k$. Third, a post-convergence check is conducted on the features that were discarded by adaptive SSR but not discarded by adaptive EDPP rule. Then we move on to the next $\lambda_{k+b+1}$ and repeat the same procedure, unless we determine an update is needed.
 
-By choosing the same batch for batched EDPP rule and batched SSR, the quantity $x_j^Tr(\lambda_k)$ only needs to be computed once and can be used by both rules. Also, because batched EDPP rule can stay powerful, it keeps the set of features that require post-convergence check small, while because basic EDPP loses power for $\lambda$-values that are far away from $\lambda_0$, post-convergence check for HSSR will be more expensive.
+By choosing the same reference for adaptive EDPP rule and adaptive SSR, the quantity $x_j^Tr(\lambda_k)$ only needs to be computed once and can be used by both rules. Also, because adaptive EDPP rule can stay powerful, it keeps the set of features that require post-convergence check small, while because basic EDPP loses power for $\lambda$-values that are far away from $\lambda_0$, post-convergence check for HSSR will be more expensive.
 
-\subsection{Coordinate descent with batched safe strong rule}
+\subsection{Pathwise lasso algorithm with adaptive safe strong rule}
 
-In this section, we will show the algorithm to do pathwise coordinate descent with our batched safe strong rule screening. We will only show the algorithm for solving one batch $\lambda_{k+1},...,\lambda_{k+B}$. After finishing this batch, we just need to start a new batch and apply the same algorithm using the output from last batch as input. Note here for the first batch with batch head $\lambda_0$, the residuals vector $r(\lambda_0)$ is just the response $y$, because all the $\hat{\beta}(\lambda_0)$ are zero. $\{x_j^Ty\}_{j=1}^p$ need to be computed at the beginning and stored for the whole path.
+In this section, we will show the algorithm to solve the lasso problem over the solution path with pathwise coordinate descent algorithm and our adaptive safe strong screening rule. The pathwise coordinate descent algorithm can be substituted by any other pathwise lasso algorithms and the adaptive EDPP can also be substituted by any other adaptive safe rules in our framework. Note here the first reference chosen will be $\lambda_0$, where the residuals vector $r(\lambda_0)$ is just the response $y$, because all the $\hat{\beta}(\lambda_0)$ are zero. $\{x_j^Ty\}_{j=1}^p$ need to be computed at the beginning and stored for the whole path.
 
 \begin{algorithm}[H]
     \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}\SetKwInOut{Pre}{Pre-compute}\SetKwInOut{Initialize}{Initialize}
     \SetAlgoLined
-    \Input{$\{x_j\}_{j=1}^p, \{x_j^Ty\}_{j=1}^p, \hat{\beta}(\lambda_k), r(\lambda_k), \lambda_{k+1},...,\lambda_{k+B}$}
-    \Pre{ $\{x_j^Tr(\lambda_k)\}_{j=1}^p, \{x_j^T\hat{y}(\lambda_k)=x_j^Ty-x_j^Tr(\lambda_k)\}_{j=1}^p, \hat{y}(\lambda_k)=y-r(\lambda_k)$}
+    \Input{$\{x_j\}_{j=1}^p, \{x_j^Ty\}_{j=1}^p,  \lambda_{0},...,\lambda_{K}$}
     \BlankLine
-    \For{$b\xleftarrow{}$ 1 \KwTo B}{
-        Safe Screening: $\mathcal{S}_{k+b}\xleftarrow{}\{j:x_j$ not discarded by batched EDPP rule$\}$.
+    \Initialize{reference = $\lambda_0$}
+    
+    \For{$k\xleftarrow{}$ 1 \KwTo K}{
+        Safe Screening: $\mathcal{S}_{k}\xleftarrow{}\{j:x_j$ not discarded by adaptive EDPP rule given the reference$\}$.
         
-        Strong Screening: $\mathcal{R}_{k+b}\xleftarrow{}\{j\in \mathcal{S}_{k+b}:x_j$ not discarded by batched SSR$\}$.
+        Strong Screening: $\mathcal{R}_{k}\xleftarrow{}\{j\in \mathcal{S}_{k}:x_j$ not discarded by adaptive SSR given the reference$\}$.
         
-        \Initialize{$\hat{\beta}(\lambda_{k+b})=\hat{\beta}(\lambda_{k+b-1}), r(\lambda_{k+b})=r(\lambda_{k+b-1})$}
+        \Initialize{$\hat{\beta}(\lambda_{k})=\hat{\beta}(\lambda_{k-1}), r(\lambda_{k})=r(\lambda_{k-1})$}
         
         \Repeat{Post-convergence check passes}{
-            Pathwise coordinate descent in Algorithm 1 with only features in $\mathcal{R}_{k+b}$ and with warm start $\hat{\beta}(\lambda_{k+b}), r(\lambda_{k+b})$, until converge. Save the outputs in $\hat{\beta}(\lambda_{k+b}), r(\lambda_{k+b})$.
+            Pathwise lasso algorithm with only features in $\mathcal{R}_{k}$ and with warm start $\hat{\beta}(\lambda_{k}), r(\lambda_{k})$, until converge. 
             
-            Post-convergence check for all $j\in \mathcal{S}_{k+b}\setminus\mathcal{R}_{k+b}$,
+            Save new $\hat{\beta}(\lambda_{k}), r(\lambda_{k})$.
+            
+            Post-convergence check for all $j\in \mathcal{S}_{k}\setminus\mathcal{R}_{k}$,
             
             \uIf{Post-convergence check does not pass}{
-                Add violating features to $\mathcal{R}_{k+b}$\;
+                Add violating features to $\mathcal{R}_{k}$\;
             }
         }
+        \uIf{Update conditions met}{
+            Reference = $\lambda_{k}$
+            
+            Compute and save: $\{x_j^Tr(\lambda_k)\}_{j=1}^p, \{x_j^T\hat{y}(\lambda_k)=x_j^Ty-x_j^Tr(\lambda_k)\}_{j=1}^p, \hat{y}(\lambda_k)=y-r(\lambda_k)$.}
+            
     }
-    \Output{$\{\hat{\beta}(\lambda_{k+b})\}_{b=1}^B, r(\lambda_{k+B})$}
-    \caption{Pathwise coordinate descent with batched safe strong rule screening}
+    \Output{$\{\hat{\beta}(\lambda_{k})\}_{k=1}^K, r(\lambda_{k+B})$}
+    \caption{Pathwise lasso algorithm with adaptive safe strong rule screening}
 \end{algorithm}
 
-\subsection{Adaptive batched safe strong rule}
+\subsection{Adaptive update algorithm}
+\label{sec:adaptive}
 
-In this section we will develop an algorithm to adaptively determining when to end the current batch and start a new batch, by evaluating screening power at previous $\lambda$-values in current batch. Our goal is to minimize the computation cost, so we will first analyse computation complexity for each part in Algorithm 2. Then we will propose an adaptive algorithm that can minimize the entire computation cost.
+In this section we will fill in line 11 in Algorithm 2. We will develop an algorithm to adaptively determining when update the reference for screening, by evaluating screening power at previous $\lambda$-values since the last update. Our goal is to minimize the computation cost, so we will first analyse computation complexity for each part in Algorithm 2. Then we will propose an adaptive algorithm that can minimize the entire computation cost.
 
 \subsubsection{Complexity analysis}
 
-This complexity analysis will only consider calculations with $O(np)$ complexity. The rest calculations, those with $O(p)$ complexity for example, are not only faster in order, but also require no out-of-core computing. Calculation of ${x_j^Ty}_{j=1}^p$ is needed for pathwise coordinate descent in algorithm 1 and is not additional cost for screening, so it would not be considered either. We will assume that strong rule screening is always powerful in the sense that $|\mathcal{R}_b|=o(p)\approx0$, but safe rule screening may not. We also assume that post-convergence check will mostly pass in the first iteration and thus is only needed approximately once per $\lambda$-value.
+This complexity analysis will only consider calculations with $O(np)$ complexity. The rest calculations, those with $O(p)$ complexity for example, are not only faster in order, but also consume less memory and thus usually do no need out-of-core computing. Calculation of ${x_j^Ty}_{j=1}^p$ is needed only once for the whole solution path, so it would be neglected too. We will assume that strong rule screening is always powerful in the sense that $|\mathcal{R}_b|=o(p)\approx0$, but safe rule screening may not. We also assume that post-convergence check will mostly pass in the first iteration and thus is only needed approximately once per $\lambda$-value.
 
-Under these assumptions, there are two dominating parts in the algorithm for each batch. First, the computation of $\{x_j^Tr(\lambda_k)\}_{j=1}^p$ at the beginning of the batch, which requires $np$ multiplications. Then, for each $\lambda$-value $\lambda_{k+b}$, the post-convergence check requires approximately $|\mathcal{S}_b\setminus\mathcal{R}_b|\approx|\mathcal{S}_b|$ KKT condition checks and each KKT condition check requires $n$ multiplications. These sum up to $n\sum_{b=1}^B|\mathcal{S}_b|$ multiplications. Combining these two parts, we will have the average cost per $\lambda$-value in the batch $\lambda_{k+1},...,\lambda_{k+B}$ to be
+Under these assumptions, there are two dominating parts in the algorithm within each update. First, the computation of $\{x_j^Tr(\lambda_k)\}_{j=1}^p$ at the time of updating the reference, which requires $np$ multiplications. Then, for each $\lambda$-value $\lambda_{k+b}$, the post-convergence check requires approximately $|\mathcal{S}_{k+b}\setminus\mathcal{R}_{k+b}|\approx|\mathcal{S}_{k+b}|$ KKT condition checks and each KKT condition check requires $n$ multiplications. These sum up to $n\sum_{i=k}^{k+B}|\mathcal{S}_k|$ multiplications, where $k+B$ is the start of the next update. Combining these two parts, we will have the average cost per $\lambda$-value in the update $\lambda_{k+1},...,\lambda_{k+B}$ to be
 
 \begin{equation}
-    \bar{T}_k(B) \approx n\frac{p}{B}+n\frac{\sum_{b=1}^B|\mathcal{S}_b|}{B}.
+    \bar{T}_k(B) \approx n\frac{p}{B}+n\frac{\sum_{b=1}^B|\mathcal{S}_{k+b}|}{B}.
 \end{equation}
 
-The first term is the average cost for safe screening. Increasing batch size $B$ means reusing calculation at the batch head more times for the safe screening and thus reducing the average cost. The second term is the average cost for KKT condition checking. As the batch size $B$ increases, safe rule screening becomes less powerful and the number of KKT condition checks required ($|\mathcal{S}_b|$) increases. The following plot illustrates the effect of $B$ on $|\mathcal{S}_b|$ in a real data set solved over a path of $K=100$ $\lambda$-values. The y axis is the proportion of discarded features, calculated as $1-|\mathcal{S}_b|/p$.
+The first term is the average cost for safe screening. Delaying next update (increasing $B$) means reusing calculation at the previous update more times for the safe screening and thus reducing the average cost. The second term is the average cost for KKT condition checking. If the old reference is reused too many times, safe rule screening becomes less powerful and the number of KKT condition checks required ($|\mathcal{S}_{k+b}|$) increases.
+
+To better illustrate this two effects, we considered the most naive and simple updating scheme: update the reference periodically after every other $B$ $\lambda$ values. The following plot illustrates the effect of update delay $B$ on $|\mathcal{S}_{k+b}|$ in a real data set solved over a path of $K=100$ $\lambda$-values. The y axis is the proportion of discarded features, calculated as $1-|\mathcal{S}_{k+b}|/p$.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[scale = 0.5]{plots/batchsizes.png}    \caption{Proportion of features rejected by screening rules vs index of $\lambda$-values for different batch sizes.}
+    \includegraphics[scale = 0.5]{plots/batchsizes.png}    \caption{Proportion of features rejected by screening rules vs index of $\lambda$-values for different update delay.}
     \label{fig:3.4.1}
 \end{figure}
 
-BEDPP (Basic EDPP) rule is the special case of batched EDPP with only one batch of the largest possible size $B=K=100$. When the batch is large, the safe rule screening will eventually fail to discard any features and make the KKT condition checking cost increase to its maximum $np$. SEDPP rule is the special case where all batches have the smallest possible batch size $B=1$. It remains very powerful along the path, making the KKT condition checking cost almost 0, but the safe screening itself is costly and takes $np$ time per $\lambda$-value. Batched EDPP can strike a balance between BEDPP and SEDPP. In this example, using batches with fixed sizes $B=10$ can reduce the safe screening cost by 90\% compared to SEDPP and reduce the KKT checking cost by 50\% to more than 90\% compared BEDPP.
+BEDPP (Basic EDPP) rule is the special case of adaptive EDPP that never updates ($B=K$). When the reference does not get updated for a long time, the safe rule screening will eventually fail to discard any features and make the KKT condition checking cost increase to its maximum $np$. SEDPP rule is the special case that updates at every $\lambda$ value ($B=1$). It remains very powerful along the path, making the KKT condition checking cost small, but the safe screening itself is costly and takes $np$ time per $\lambda$-value. Adaptive EDPP can strike a balance between BEDPP and SEDPP. In this example, simply using fixed update period $B=10$ can reduce the safe screening cost by 90\% compared to SEDPP and reduce the KKT checking cost by 50\% to more than 90\% compared BEDPP.
 
-This example also shows the performance of batch EDPP rule changes along the path of $\lambda$-values. Take the batched EDPP with $B=10$ as an example. For the first batch of 10 $\lambda$-values, the batched EDPP stays powerful even at the end, which means this batch is still exploitable. We may want to extend this batch to reduce average safe screening cost without harming the KKT condition checking cost much. For the last batch however, the screening power is close to 0 for the last few $\lambda$-values, which means this batch becomes useless at this point. Starting a new batch earlier can greatly reduce the KKT condition checking cost with relatively small increase in safe screening cost. Also, the performance of batch EDPP rule also depends on many factors such as the data, the range of $\lambda$-values and spacing between $\lambda$-values. These suggest that starting a new batch after every fixed number of $\lambda$-values cannot not be consistently efficient and we want a method that can automatically determine whether to start a new batch given current performance.
+This example also shows the timing of updates should be decided carefully and adaptively. For the first 10 $\lambda$-values, the safe rule stays powerful, which means the old reference is still exploitable. We may want delay the update to reduce average safe screening cost without harming the KKT condition checking cost much. For the last 20 $\lambda$-values however, the screening power drops to 0 quickly, which means the reference becomes useless quickly. Updating more frequently can greatly reduce the KKT condition checking cost with relatively small increase in safe screening cost. Also, the performance of adaptive EDPP rule also depends on many factors such as the data, the range of $\lambda$-values and spacing between $\lambda$-values. These suggest that simple updating rules like periodic updating cannot not be consistently efficient and we want a method that can automatically determine whether to update given current performance.
 
-\subsubsection{Adaptive batch starting algorithm}
+\subsubsection{Efficient updating algorithm}
 
-From previous example, we assume the average cost is a convex function of batch size $B$ which decreases first and then after some optimal value increases again. If we want to minimize the average cost per $\lambda$-value, we need to end the current batch when extending the current batch by 1 $\lambda$-value will increase the average cost. That is, end the current batch at $\lambda_{B-1}$ when $\bar{T}_k(B)>\bar{T}_k(B-1)$. From (13), this condition will be:
+From previous example, we assume the average cost is a convex function of distance from last update $B$, which decreases first and then after some optimal value increases again. If we want to minimize the average cost per $\lambda$-value, we need to update when using the old reference for one more $\lambda$-value will increase the average cost. That is, we should update the reference to $\lambda_{k+B}$ when $\bar{T}_k(B+1)>\bar{T}_k(B)$. For practice, we will update the reference to $\lambda_{k+B}$ when $\bar{T}_k(B)>\bar{T}_k(B-1)$ instead, because $\bar{T}_k(B+1)$ cannot be calculated without doing screening at $\lambda_{k+B+1}$. These two conditions should be close and thus this substitution should also be close to optimal. From (13), the latter condition will be:
 
 \begin{equation}
-    (B-1)|\mathcal{S}_B|-\sum_{b=1}^{B-1}|\mathcal{S}_b|>p.
+    (B-1)|\mathcal{S}_{k+B}|-\sum_{b=1}^{B-1}|\mathcal{S}_{k+b}|>p.
 \end{equation}
-In practice, we will end the batch at $\lambda_B$ and start at $\lambda_{B+1}$ instead, because evaluating $\mathcal{S}_B$ needs screening at $\lambda_B$ and if we have already done the screening, it would be a waste not to use the screening result.
 
-This batch restarting condition is a greedy condition that only considers the current batch cost. In practice, we cannot know about future batches so this is the most reasonable condition. In fact, it can handle the three most common scenarios well. First, if the screening power stays high, meaning $\mathcal{S}_b$ is small for all $b$, then the left-hand-side of (14) will be small and thus at this point we will extend the current batch to further exploit it. Second, if the screening power has been high for a while but dropped suddenly, meaning $\mathcal{S}_B$ is large but $\mathcal{S}_b$ are mostly small for $b=1,2,...,B-1$, then the left-hand-side of (14) will be large and we will end the useless current batch and start a new batch. Last, if the screening power drops dramatically right after the beginning of the current batch, meaning $\mathcal{S}_b$ are close to $p$ for $b=2,3,...,B$, then the left-hand-side of (14) will be approximately $p-|\mathcal{S}_1|<p$. We will not end the current batch although it becomes useless, because if we did, the next batch would be useless as well.
 
-Combined with Algorithm 2, we will propose the pathwise coordinate descent with adaptive batched safe strong rule screening. After ending a batch, if there are still unsolved $\lambda$-values in the path $\lambda_0,\lambda_1,...,\lambda_K$, we can just start a new batch with the rest unsolved $\lambda$-values and apply the same algorithm.
+This updating condition is a greedy condition that only considers the cost up to the current $\lambda$ value. In practice, we cannot know about future $\lambda$ values so this is the most reasonable condition. In fact, it provides a robust strategy towards three most common scenarios. First, if the screening power stays high, meaning $\mathcal{S}_{k+b}$ is small for all $b$, then the left-hand-side of (14) will be small and thus at this point we will not update to further exploit the last update. Second, if the screening power has been high for a while but dropped suddenly, meaning $\mathcal{S}_{k+B}$ is large but $\mathcal{S}_{k+b}$ are mostly small for $b=1,2,...,B-1$, then the left-hand-side of (14) will be large and we will update the useless old reference to a new helpful one. Last, if the screening power drops dramatically right after the last update, meaning $\mathcal{S}_{k+b}$ are close to $p$ for $b=2,3,...,B$, then the left-hand-side of (14) will be approximately $p-|\mathcal{S}_1|<p$. We will not update although old reference is useless, because if we did, the new update would become useless quickly as well.
 
-\begin{algorithm}[H]
-    \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}\SetKwInOut{Pre}{Pre-compute}\SetKwInOut{Initialize}{Initialize}
-    \SetAlgoLined
-    \Input{$\{x_j\}_{j=1}^p, \{x_j^Ty\}_{j=1}^p, \hat{\beta}(\lambda_k), r(\lambda_k), \lambda_{k+1},...,\lambda_{K}$}
-    \Pre{ $\{x_j^Tr(\lambda_k)\}_{j=1}^p, \{x_j^T\hat{y}(\lambda_k)=x_j^Ty-x_j^Tr(\lambda_k)\}_{j=1}^p, \hat{y}(\lambda_k)=y-r(\lambda_k)$}
-    \BlankLine
-    $B\xleftarrow{}1$ 
-    
-    \Repeat{$(B-1)|\mathcal{S}_B|-\sum_{b=1}^{B-1}|\mathcal{S}_{b}|>p$ or $B>K$}{
-        Safe Screening: $\mathcal{S}_{k+B}\xleftarrow{}\{j:x_j$ not discarded by batched EDPP rule$\}$.
-        
-        Strong Screening: $\mathcal{R}_{k+B}\xleftarrow{}\{j\in \mathcal{S}_{k+B}:x_j$ not discarded by batched SSR$\}$.
-        
-        \Initialize{$\hat{\beta}(\lambda_{k+B})=\hat{\beta}(\lambda_{k+B-1}), r(\lambda_{k+B})=r(\lambda_{k+B-1})$}
-        
-        \Repeat{Post-convergence check passes}{
-            Pathwise coordinate descent in Algorithm 1 with only features in $\mathcal{R}_{k+B}$ and with warm start $\hat{\beta}(\lambda_{k+B}), r(\lambda_{k+B})$, until converge. Save the outputs in $\hat{\beta}(\lambda_{k+B}), r(\lambda_{k+B})$.
-            
-            Post-convergence check for all $j\in \mathcal{S}_{k+B}\setminus\mathcal{R}_{k+B}$,
-            
-            \uIf{Post-convergence check does not pass}{
-                Add violating features to $\mathcal{R}_{k+B}$\;
-            }
-        }
-        $B\xleftarrow{}B+1$
-    }
-    \Output{$\{\hat{\beta}(\lambda_{k+b})\}_{b=1}^B, r(\lambda_{k+B}),\lambda_{k+B+1},...,\lambda_K$}
-    \caption{Pathwise coordinate descent with adaptive batched safe strong rule screening}
-\end{algorithm}
+This adaptive updating condition fills in the condition on line 11 in Algorithm 2 and forms a complete pathwise lasso algorithm with adaptive safe strong screening. 
+
 
 \section{Extension to other lasso type problems}
 \label{sec:4}
 
-The structure of the batched safe strong rule is easily extendable to any lasso problems that have corresponding sequential strong rule and sequential safe rule. After a batched safe strong rule is built, we can automatically apply the adaptive batch starting algorithm to make it an adaptive batched safe strong rule. We are going to derive the extensions to two lasso type problems and show these extensions improve computation efficiency.
+The structure of the adaptive safe strong rule is easily extendable to any lasso problems that have corresponding sequential strong rule and sequential safe rule. After an adaptive safe strong rule is built, we can automatically apply the adaptive update algorithm to form a pathwise algorithm with adaptive safe strong screening. We are going to derive the extensions to two lasso type problems and show these extensions improve computation efficiency.
 
-\subsection{Batched safe strong rule for sparse logistic regression}
+\subsection{Adaptive safe strong rule for sparse logistic regression}
 
 The sparse logistic regression model can be defined as:
 
@@ -362,10 +344,10 @@ where $\pi(\beta)=\{\pi_i(\beta)\}_{i=1}^n=\{p(y_i=1|x_{i1},x_{i2},...,x_{ip})\}
 
 We can use SSR to do the strong rule screening with a small change according to the KKT condition. The residual vector now is $r(\lambda_k)=y-\pi(\hat{\beta}(\lambda_k))$. Then the SSR discards the $j$-th feature at $\lambda_{k+1}$ if (4) holds.
 
-For safe rule screening, instead of EDPP rules, Slores (sparse logistic regression screening rule)\citep{wang2014safe} is used. It was proposed as a one-step rule but we will extend it to a batched rule. Let $\Tilde{y}=2y-1\in\{-1,1\}^n$, $r(\lambda_k)=y-\pi(\hat{\beta}(\lambda_k))$.
+For safe rule screening, instead of EDPP rules, Slores (sparse logistic regression screening rule)\citep{wang2014safe} is used. It was proposed as a one-step rule but it can be extended as a sequential rule with some minimal change and thus can be extended as adaptive rule. Let $\Tilde{y}=2y-1\in\{-1,1\}^n$, $r(\lambda_k)=y-\pi(\hat{\beta}(\lambda_k))$.
 
-\begin{theorem}[Batched Slores]
-For the sparse logistic regression model (15), let $\lambda_0:=\max_j|x_j^Ty/n|$, $\Tilde{y}=2y-1\in\{-1,1\}^n$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$. $\forall\theta\in(0,1)^n$, let $x_*=argmax_{x_j}|x_j^Ty/n|$ and
+\begin{theorem}[Adaptive Slores]
+For the sparse logistic regression model (15), let $\lambda_0:=\max_j|x_j^Ty/n|$, $\Tilde{y}=2y-1\in\{-1,1\}^n$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$. $\forall\theta\in(0,1)^n$, let 
 
 \begin{equation}
     \begin{split}
@@ -374,7 +356,7 @@ For the sparse logistic regression model (15), let $\lambda_0:=\max_j|x_j^Ty/n|$
     \end{split}
 \end{equation}
 
-Under condition (2) except for standardization for $y$, for any $k=1,2,...,K-1$, assume $\hat{\beta}(\lambda_k)$, $r(\lambda_k)=y-\pi(\hat{\beta}(\lambda_k))$, $\theta(\lambda_k)=\{r_i(\lambda_k)\Tilde{y}_i\}_{i=1}^n$ and $\hat{y}(\lambda_k):=\pi(\hat{\beta}(\lambda_k))$ are known. For some $B$ and any $b$ s.t. $k<k+b\leq k+B\leq K$, let
+Under condition (2) except for standardization for $y$, for any $k=1,2,...,K-1$, assume $\hat{\beta}(\lambda_k)$, $r(\lambda_k)=y-\pi(\hat{\beta}(\lambda_k))$, $x_*\in\{x_j:\hat{\beta}_j(\lambda_k)\neq0\} $, $\theta(\lambda_k)=\{r_i(\lambda_k)\Tilde{y}_i\}_{i=1}^n$ and $\hat{y}(\lambda_k):=\pi(\hat{\beta}(\lambda_k))$ are known. For any $k+b>k$, let
 
 \begin{equation}
     R(\lambda_{k+b})=\sqrt{\frac{n}{2}\bigg[g\bigg(\frac{\lambda_{k+b}}{\lambda_k}\theta(\lambda_k)\bigg)-g\bigg(\theta(\lambda_k)\bigg)+\bigg(1-\frac{\lambda_{k+b}}{\lambda_k}\bigg)\bigg(\nabla g\big(\theta(\lambda_k)\big)\bigg)^T\theta(\lambda_k)\bigg]},
@@ -410,9 +392,9 @@ Then $\hat{\beta}_j(\lambda_{k+b})=0$ if
         \end{equation}
 \end{theorem}
 
-When computing the batched Slores, $\{x_j^Ty\}_{j=1}^p$ and $\{x_j^Tx_*\}_{j=1}^p$ need to be computed only once, stored and reused for the whole solution path $\lambda_0>\lambda_1>...>\lambda_K$. Other than those two terms, the only term that requires expensive $O(np)$ computation is $\{x_j^Tr(\lambda_k)\}_{j=1}^p$, which only needs to be computed once for each batch. Thus algorithm 3 for adaptive batched safe strong rule can be done with Slores rule instead of EDPP rule to do screening for sparse logistic regression model.
+When computing the adaptive Slores, $\{x_j^Ty\}_{j=1}^p$ needs to be computed only once, stored and reused for the whole solution path. $\{x_j^Tx_*\}_{j=1}^p$ can be reused unless $x_*$ changes. Other than those two terms, the only term that requires expensive $O(np)$ computation is $\{x_j^Tr(\lambda_k)\}_{j=1}^p$, which only needs to be computed at the time of each update. Thus algorithm 2 for adaptive safe strong rule can be done with Slores rule instead of EDPP rule to form Ada-SSR-Slores that does screening for sparse logistic regression model.
 
-\subsection{Batched safe strong rule for group lasso}
+\subsection{Adaptive safe strong rule for group lasso}
 
 The group lasso problem \citep{yuan2006model} can be defined as:
 
@@ -431,42 +413,42 @@ According to the KKT condition, we can use SSR to do strong rule screening. Give
     \bigg|\bigg|\frac{1}{n}X_g^Tr(\lambda_k)\bigg|\bigg|_2<\sqrt{p_g}(2\lambda_{k+1}-\lambda_k).
 \end{equation}
 
-For safe rule screening, we have SEDPP for group lasso\citep{wang2013lasso} and we can extend it the batched EDPP rule for group lasso.
+For safe rule screening, we have SEDPP for group lasso\citep{wang2013lasso} and we can extend it the adaptive EDPP rule for group lasso.
 
-\begin{theorem}[Batched EDPP for group lasso]
+\begin{theorem}[Adaptive EDPP for group lasso]
 For the group lasso problem (22), let $\lambda_0:=\max_j\frac{||X_g^Ty||_2}{n\sqrt{p_g}}$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$. Under condition (2) and (23)
     \begin{enumerate}
-        \item For any $k=1,2,...,K-1$, given $\hat{\beta}(\lambda_k)$, $r(\lambda_k)$ and $\hat{y}(\lambda_k):=\sum_{g=1}^GX_g\hat{\beta}_g(\lambda_k)$, then for some $B$ and any $b$ s.t. $k<k+b\leq k+B\leq K$, $\hat{\beta}_g(\lambda_{k+b})=0$ if
+        \item For any $k=1,2,...,K-1$, given $\hat{\beta}(\lambda_k)$, $r(\lambda_k)$ and $\hat{y}(\lambda_k):=\sum_{g=1}^GX_g\hat{\beta}_g(\lambda_k)$, then for any  $k+b>k$, $\hat{\beta}_g(\lambda_{k+b})=0$ if
         \begin{equation}
             \begin{split}
                 &\left|\left|2\lambda_{k+b}X_g^Tr(\lambda_k)+(\lambda_k-\lambda_{k+b})\left( X_g^Ty-\frac{y^T\hat{y}(\lambda_k)X_g^T\hat{y}(\lambda_k)}{||\hat{y}(\lambda_k)||_2^2}\right)\right|\right|_2\\
                 &<2n\lambda_k\lambda_{k+b}\sqrt{p_g}-(\lambda_k-\lambda_{k+b})\sqrt{n||y||_2^2-\frac{n(y^T\hat{y}(\lambda_k))^2}{||\hat{y}(\lambda_k)||_2^2}}
             \end{split}
         \end{equation}
-        \item For k=0, i.e., $\lambda_k=\lambda_0$, let $X_*=argmax_{X_g}\frac{||X_g^Ty||_2}{n\sqrt{p_g}}$ with dimension $n\times p_*$, then for some $B$ and any $b$ s.t. $0<b\leq B\leq K$, $\hat{\beta}_g(\lambda_{k+b})=0$ if
+        \item For k=0, i.e., $\lambda_k=\lambda_0$, let $X_*=argmax_{X_g}\frac{||X_g^Ty||_2}{n\sqrt{p_g}}$ with dimension $n\times p_*$, then for any $b>0$, $\hat{\beta}_g(\lambda_{k+b})=0$ if
         \begin{equation}
         \left|\left|(\lambda_0+\lambda_b)X_g^Ty-(\lambda_0-\lambda_b)X_g^TX_*X_*^Ty\right|\right|_2<2n\lambda_0\lambda_b\sqrt{p_g}-(\lambda_0-\lambda_b)\sqrt{n||y||_2^2-n^2\lambda_0^2p_*}.
     \end{equation}
     \end{enumerate}
 \end{theorem}
 
-Similar to Batched EDPP rule, three expensive computations are $\{X_g^Ty\}_{g=1}^G$, $\{X_g^TX_*\}_{g=1}^G$ and $\{X_g^Tr(\lambda_k)\}_{g=1}^G$. The first and second only need to be computed once for the whole solution path. The last only needs to be computed once per batch with cost $O(np)$.
+Similar to Adaptive EDPP rule, three expensive computations are $\{X_g^Ty\}_{g=1}^G$, $\{X_g^TX_*\}_{g=1}^G$ and $\{X_g^Tr(\lambda_k)\}_{g=1}^G$. The first and second only need to be computed once for the whole solution path. The last only needs to be computed at the time of each update with cost $O(np)$. The adaptive EDPP for group lasso, combined with the previous SSR, forms the Ada-SSR-EDPP for group lasso.
 
 \section{Experiments}
 \label{sec:5}
 
-In this section conduct experiments solving lasso model on both simulated data sets and real data sets, to show our proposed adaptive batched safe strong rule screening method outperforms previous screening method such as SSR, SEDPP, HSSR and Slores. Active-set cycling in \ref{sec:active} is always used with all screening methods because it can be easily combined with any screening methods with on extra cost.
+In this section conduct experiments solving lasso model on both simulated data sets and real data sets, to show our proposed adaptive safe strong rule screening method outperforms previous screening method such as SSR, SEDPP, HSSR and Slores. Active-set cycling in \ref{sec:active} is always used with all screening methods because it can be easily combined with any screening methods with no extra cost.
 
-The adaptive batched safe strong rule screening is implemented in the \textbf{R} package \textbf{biglasso} and we will use this package for our experiment. Compared to traditional packages that solve lasso problem, such as \textbf{glmnet}, \textbf{biglasso} focuses on efficiently solving lasso problem with high-dimensional data sets that have a large number of features. First, it utilized the memory-mapping techniques that stores the data set on the disk and reads in only the part of the data necessary for model solving. Second, it applied screening rules to reduce both the computation cost and memory cost as we have discussed. These two features together help \textbf{biglasso} to outperform other packages. We will show that our new screening method will result in a new version of the package that shows significant improvement compared to previous version. 
+The adaptive safe strong rule screening is implemented in the \textbf{R} package \textbf{biglasso} and we will use this package for our experiment. Compared to traditional packages that solve lasso problem, such as \textbf{glmnet}, \textbf{biglasso} focuses on efficiently solving lasso problem with high-dimensional data sets that have a large number of features. First, it utilized the memory-mapping techniques that stores the data set on the disk and reads in only the part of the data necessary for model solving. Second, it applied screening rules to reduce both the computation cost and memory cost as we have discussed. These two features together help \textbf{biglasso} to outperform other packages. We will show that our new screening method will result in a new version of the package that shows significant improvement compared to previous version. 
 
-For all the following experiments, we will solve the lasso model along a path of $100$ $\lambda$-values with the maximum $\lambda_0=\max_j|x_j^Ty/n|$ determined by the data, the minimum $\lambda_K=0.05\lambda_0$ and the rest $\lambda$-values equally spaced between them on log scale.
+For all the following experiments, we will solve the lasso model along a path of $100$ $\lambda$-values with the maximum $\lambda_0=\max_j|x_j^Ty/n|$ determined by the data, the minimum $\lambda_K=0.05\lambda_0$ and the rest $\lambda$-values equally spaced between on log scale.
 
 \subsection{Simulation study}
 \label{sec:sim}
 
 \subsubsection{Lasso model}
 
-In this part, we will solve the standard lasso problem (1) with different screening methods: Active-set Cycling (AC) alone, SSR, SEDPP, HSSR and adaptive batched safe strong rule (ABSSR). The safe rule used in ABSSR will be batched EDPP rule. Note that AC is always incorporated with all other screening rules, so using AC alone can be considered as a baseline for this comparison.
+In this part, we will solve the standard lasso problem (1) with different screening methods: Active-set Cycling (AC) alone, SSR, SEDPP, HSSR and adaptive safe strong rule (ASSR). The safe rule used in ASSR will be adaptive EDPP rule. Note that AC is always incorporated with all other screening rules, so using AC alone can be considered as a baseline for this comparison.
 
 The data will be simulated from the model: $y=X\beta+0.1\epsilon$. $X$ and $\epsilon$ are sampled i.i.d from $N(0,1)$. $\beta$ will have $s$ randomly selected elements equally spaced between $[-\beta_{max},\beta_{max}]$ and the rest $p-s$ elements are zeros. Each setting is replicated $10$ times to calculate the average time cost. We consider the following cases:
 
@@ -483,15 +465,15 @@ The data will be simulated from the model: $y=X\beta+0.1\epsilon$. $X$ and $\eps
     \label{fig:5.1.1}
 \end{figure}
 
-Figure 2 shows the computation time (top row) and relative computation time compared to AC (bottom row) of solving lasso problem with different screening methods. The ABSSR is uniformly the fastest under all settings. Most of the time it is 2-4 times faster than any other screening methods. It outperforms other methods especially when the data set is large (large $n$ or large $p$) or the active features are sparse among all features (small $s$). 
+Figure 2 shows the computation time (top row) and relative computation time compared to AC (bottom row) of solving lasso problem with different screening methods. The ASSR is uniformly the fastest under all settings. Most of the time it is 2-4 times faster than any other screening methods. It outperforms other methods especially when the data set is large (large $n$ or large $p$) or the active features are sparse among all features (small $s$). 
 
-There are several atypical cases when ABSSR's advantage over other methods is not as significant: (1) $p$ or $n$ is small. This corresponds a small data set and computation will not be challenging. (2) $\beta_{max}$ is close to zero. This means all the nonzero coefficients are close to zero and are hard to be distinguished from zero coefficients. This can cause problem for any statistical learning methods. (3) $s$ is large. In this case, the underlying model that generate the data set is not sparse in the sense that proportion of nonzero coefficients is not small. Lasso model would not be the optimal model to analyse such an data set.
+There are several atypical cases when ASSR's advantage over other methods is not as significant: (1) $p$ or $n$ is small. This corresponds a small data set and computation will be less challenging. (2) $\beta_{max}$ is close to zero. This means all the nonzero coefficients are close to zero and are hard to be distinguished from zero coefficients. This can cause problem for any statistical learning methods. (3) $s$ is large. In this case, the underlying model that generate the data set is not sparse in the sense that proportion of nonzero coefficients is not small. Lasso model would not be the optimal model to analyse such an data set.
 
-We also tried varying other factors, for example, varying the correlation among features in $X$ or varying the sparsity with fixed signal strength. The ABSSR also shows uniform advantage over other method when those factors vary in reasonable ranges.
+We also tried varying other factors, for example, varying the correlation among features in $X$ or varying the sparsity with fixed signal strength. The ASSR also shows uniform advantage over other method when those factors vary in reasonable ranges.
 
 \subsubsection{Sparse logistic regression model}
 
-In this part, we will replicate the previous experiment, expect that now we will solve the sparse logistic regression model with the following screening methods: SSR, HSSR with Slores as the safe rule (HSlores), and ABSSR with Slores as the safe rule (ABSlores). SSR is implemented in all of the three screening methods so it will be considered as the baseline.
+In this part, we will replicate the previous experiment, expect that now we will solve the sparse logistic regression model with the following screening methods: SSR, HSSR with Slores as the safe rule (HSlores), and ASSR with Slores as the safe rule (ASlores). SSR is implemented in all of the three screening methods so it will be considered as the baseline.
 
 The data will be simulated from the model: $y=\mathbf{1}\{X\beta+0.1\epsilon >0\}$. $X$ and $\epsilon$ are sampled i.i.d from $N(0,1)$. $\beta$ will have $s$ randomly selected elements equally spaced between $[-\beta_{max},\beta_{max}]$ and the rest $p-s$ elements are zeros. Each setting is replicated $10$ times to calculate the average time cost. We consider the same 4 cases we have considered in the previous experiment.
 
@@ -501,7 +483,7 @@ The data will be simulated from the model: $y=\mathbf{1}\{X\beta+0.1\epsilon >0\
     \label{fig:5.1.2}
 \end{figure}
 
-Figure 3 shows the computation time (top row) and relative computation time compared to SSR (bottom row) of solving sparse logistic regression problem with different screening methods. ABSlores is also uniformly faster than other methods and this improvement is significant except for some atypical cases.
+Figure 3 shows the computation time (top row) and relative computation time compared to SSR (bottom row) of solving sparse logistic regression problem with different screening methods. ASlores is also uniformly faster than other methods and this improvement is significant except for some atypical cases motioned before.
 
 
 \subsection{Real data analysis}
@@ -536,12 +518,12 @@ AC & 2.14 (0.03) & 6.82 (0.07) & 46.67 (0.13) & 59.20 (1.89) \\
 SSR & 1.34 (0.01) & 5.20 (0.01) & 25.34 (0.08) & 35.40 (0.44) \\
 SEDPP & 1.38 (0.01) & 8.40 (0.45) & 25.48 (0.05) & 53.69 (3.81) \\
 HSSR & 1.21 (0.01) & 3.44 (0.07) & 23.85 (0.06) & 31.05 (0.80) \\
-ABSSR & \textbf{0.71 (0.01)} & \textbf{1.15 (0.02)} & \textbf{8.80 (0.03)} & \textbf{12.71 (1.05)} \\\hline
+ASSR & \textbf{0.71 (0.01)} & \textbf{1.15 (0.02)} & \textbf{8.80 (0.03)} & \textbf{12.71 (1.05)} \\\hline
 \end{tabular}
 \caption{Average computing time in second (standard error) for solving the lasso model}
 \end{table}
 
-ABSSR again outperforms other screening methods on all data sets, faster than the fastest of the rest by 70\% to 200\%. Also note that the performance of SEDPP varies a lot in MNIST and NYT data sets, where the response is randomly selected in each replication, suggesting that the speed of SEDPP is sensitive to the data. ABSSR is built with SEDPP as the safe rule but does not have the problem of instability, because it can adaptively adjust itself according the performance of the safe rule.
+ASSR again outperforms other screening methods on all data sets, faster than the fastest of the rest by 70\% to 200\%. Also note that the performance of SEDPP varies a lot in MNIST and NYT data sets, where the response is randomly selected in each replication, suggesting that the speed of SEDPP is sensitive to the data. ASSR is built with SEDPP as the safe rule but does not have the problem of instability, because it can adaptively adjust itself according the performance of the safe rule.
 
 
 
@@ -554,6 +536,11 @@ ABSSR again outperforms other screening methods on all data sets, faster than th
 \section{Conclusion}
 \label{sec:6}
 
+In this paper, we proposed the novel adaptive safe strong screening framework for efficient lasso type problem optimization over the solution path. The key idea is cleverly reusing the reference for screening along the path until updating to a new reference is beneficial for computation cost.  We developed three instances in this framework: Ada-SSR-EDPP, Ada-SSR-Slores and Ada-SSR EDPP for group lasso, for 3 different types of lasso problems. We tested the first two in extensive numeric experiments on both simulated data and real data, including a ultra big data that does not fit into the memory. Our proposed rules outperformed other state-of-the-art screening methods uniformly, especially in the most challenging scenarios. 
+
+Ada-SSR-EDPP and Ada-SSR-Slores have been implemented in  publicly accessible \textbf{R} packages \textbf{biglasso}\citep{zeng2017biglasso}, which was used to carry out the numeric experiments.
+
+Our adaptive safe strong screening framework also has great flexibility for extensions. It can substitute coordinate descent with any other faster lasso problem optimizer, SSR with any other stronger strong rules and the adaptive updating algorithm with any other cleverer algorithm. Most importantly, most sequential safe rules can be modified as adaptive safe rules and fit into our framework. This lead to several future extensions. First, if a stronger safe rule is developed, our framework can better exploit its power and lead to an even faster algorithm. Second, there are still many lasso type problems that do not have corresponding sequential safe rules, such as sparse Cox regression, sparse Poisson regression and sparse SVM. Once they are developed, they can be fit into our framework to produce efficient algorithm for other types of lasso problem.
 
 \bibliography{ref}
 
