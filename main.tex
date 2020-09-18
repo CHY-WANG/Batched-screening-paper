@@ -54,8 +54,8 @@ In this paper, we proposed an adaptive safe screening scheme that changes how sc
 This manuscript provides a brief review of existing feature screening rules in Section\ref{sec:existing} as well as the following novel contributions:
 
 \begin{itemize}
-    \item A new feature screening framework (Section ?3.2??), which updates the reference for screening alone the grid of $\lambda$ values on any combination of strong screening rules and safe screening rules, which can generate a family of more efficient and scalable screening rules, compared to previous screening rules that are either sequential or one-step.
-    \item Three specific applications of this framework, Ada-SSR-EDPP, Ada-SSR-Slores and Ada-SSR-EDPP for group lasso, for fitting lasso-penalized linear regression and logistic regression models, respectively (Section ?3.4,4.1??).
+    \item A new feature screening framework (Section 3.1,3.2), which updates the reference for screening alone the grid of $\lambda$ values on any combination of strong screening rules and safe screening rules, which can generate a family of more efficient and scalable screening rules, compared to previous screening rules that are either sequential or one-step.
+    \item Three specific applications of this framework, Ada-SSR-EDPP, Ada-SSR-Slores and Ada-SSR-EDPP for group lasso, for fitting lasso-penalized linear regression and logistic regression models, respectively (Section 3.4,4.1,4.2).
     \item An algorithm to determine when to update to a new reference $\lambda$ value for best efficiency (Section \ref{sec:adaptive}).
     \item Simulation studies (Section~\ref{sec:sim}) and real data analysis (Section~\ref{sec:real-data}) under a variety of scenarios, including testing data sets larger than memory, which showed that the proposed algorithms outperform other approaches in all cases, with substantial speed up.
     \item The Ada-SSR-SEDPP and Ada-SSR-Slores were implemented and added as new options to the publicly accessible \textbf{R} package \textbf{biglasso}\citep{zeng2017biglasso}, which was used to carry out the analyses in this manuscript.
@@ -72,31 +72,7 @@ This standardization make it reasonable to apply the same penalty to all feature
 
 Typical practice when fitting lasso models is to solve for $\hat{\beta}(\lambda)$ along a decreasing sequence of $K+1$ values of $\lambda$: $\lambda_0 > \lambda_1 > \cdots > \lambda_K$.  As we will discuss shortly, we set $\lambda_0=\max_j|x_j^Ty/n|$ throughout; this ensures that $\hat{\beta}(\lambda_0)=0$, making it a natural point from which to start.
 
-Pathwise coordinate descent is a popular algorithm fitting a solution path for lasso problem. For the model at any $\lambda$-value $\lambda_{k+1}$, letting $r(\lambda_{k+1}) \equiv y-X\hat{\beta}(\lambda_{k+1})$ denote the vector of residuals, the solution $\hat{\beta}(\lambda_{k+1})$ can be computed using Algorithm~\ref{Alg:pathwise-coordinate-descent}.  Note that the algorithm uses the previous solution $\hat{\beta}(\lambda_k)$ as the initial value in obtaining the next solution along the path, a strategy known as a ``warm start''.
-
-\begin{algorithm}[H]\label{Alg:pathwise-coordinate-descent}
-    \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}\SetKwInOut{Initialize}{Initialize}
-    \SetAlgoLined
-    \Input{$\hat{\beta}(\lambda_k), \{x_j\}_{j=1}^p, r(\lambda_k)$}
-    \Initialize{ $r = r(\lambda_k),\hat{\beta} = \hat{\beta}(\lambda_k)$}
-    \BlankLine
-    \While{not converged}{
-        \For{$j \xleftarrow{}$ 1 \KwTo p}{
-            $z_j\xleftarrow{}\hat{\beta} + x_j^Tr/n$\;
-            \uIf{$z_j > \lambda$}{
-                $\beta_j^{new}\xleftarrow{} z_j-\lambda$\;
-            }\uElseIf{$z_j < -\lambda$}{
-                $\beta_j^{new}\xleftarrow{} z_j+\lambda$\;
-            }\Else{
-                $\beta_j^{new}\xleftarrow{} 0$\;
-            }
-            $r\xleftarrow{}r-(\beta_j^{new}-\hat{\beta}_j)x_j$\;
-            $\hat{\beta}_j\xleftarrow{}\beta_j^{new}$\;
-        }
-    }
-    \Output{$\hat{\beta}(\lambda_{k+1})\xleftarrow{}\hat{\beta},r(\lambda_{k+1})\xleftarrow{}r$}
-    \caption{Pathwise coordinate descent with warm start $\hat{\beta}(\lambda_k),r(\lambda_k)$}
-\end{algorithm}
+ Pathwise algorithms are developed to address the challenge of the sequence with a strategy known as the ``warm start''. For the model at any $\lambda$-value $\lambda_{k+1}$, letting $r(\lambda_{k+1}) \equiv y-X\hat{\beta}(\lambda_{k+1})$ denote the vector of residuals, the solution $\hat{\beta}(\lambda_{k+1})$ can be computed using the previous solution $\hat{\beta}(\lambda_k)$ as the initial value in the algorithm. Pathwise coordinate descent is a popular pathwise algorithm fitting a solution path for lasso problem and will be used as the lasso algorithm for the rest of the paper.
 
 In convex optimization, the Karush-Kuhn-Tucker (KKT) conditions are both necessary and sufficient for any optimal solution.  Screening rules take advantage of these KKT conditions in order to discard inactive coefficients.  For the lasso, the KKT conditions governing the optimal solution $\hat{\beta}(\lambda)$ are given by
 \begin{equation}
@@ -122,46 +98,17 @@ Sequential strong rule (SSR) \citep{tibshirani2011regression} is a fast and powe
     |x_j^Tr(\lambda_k)/n|<2\lambda_{k+1}-\lambda_k.
 \end{equation}
 
-The SSR is derived from the KKT condition and the "unit-slope" assumption. In (2), if we denote the left-hand-side as $c_j(\lambda)=x_j^Tr(\lambda)/n$, then the "unit-slope" assumption assumes a unit bound on the slope of $c_j(\lambda)$ over $\lambda$. That is:
+The SSR is derived from the KKT condition and the "unit-slope" assumption that the size of the slope of $x_j^Tr(\lambda)/n$ over $\lambda$ is bounded by 1. 
 
-\begin{equation}
-    |c_j(\lambda)-c_j(\lambda')|\leq |\lambda-\lambda'|,\qquad \forall \lambda,\lambda'\in(0,\lambda_0].
-\end{equation}
+The biggest problem of SSR is that the "unit-slope" assumption may not hold and thus discarded features are not guaranteed to have zero coefficients. A post-convergence KKT check is needed for the discarded features to make sure their coefficients are truly zero. If violations occur, we need to refit the model adding the violating features and repeat the post-convergence check. The cost for each post-convergence check is O(np) and especially costly when violations occur. However, previous studies have shown that violations are rare and thus additional cost is acceptable.
 
-Under this condition and (4), using triangle inequality, $c_j(\lambda_k)$ can be bounded as the following:
-
-\begin{equation}
-    \begin{split}
-        |c_j(\lambda_{k+1})| &\leq |c_j(\lambda_{k+1})-c_j(\lambda_k)| + |c_j(\lambda_k)|\\
-    &< \lambda_k - \lambda_{k+1} + (2\lambda_{k+1}-\lambda_k)\\
-    &=\lambda_{k+1},
-    \end{split}
-\end{equation}
-and then KKT conditions (2) guarantees $\hat{\beta}_j(\lambda_{k+1})=0$.
-
-The biggest problem of SSR is that the "unit-slope" condition (5) may not hold and thus discarded features are not guaranteed to have zero coefficients. A post-convergence KKT check is needed for the discarded features to make sure their coefficients are truly zero. If violations occur, we need to refit the model adding the violating features and repeat the post-convergence check. The cost for each post-convergence check is O(np) and especially costly when violations occur. However, previous studies have shown that violations are rare and thus additional cost is acceptable.
-
-A nice property about SSR with post-convergence check is that some quantities can be reused. When doing post-convergence check at $\lambda_k$, $x_j^Tr(\lambda_k)/n$ is calculated in (2). Then in SSR screening at $\lambda_{k+1}$ (4), this quantity is used again. In fact, when the quantity $x_j^Tr(\lambda_k)/n$ is already computed, other parts of the computation of (4) have almost zero cost. In conclusion, the computation cost of SSR is generally only the cost of the post-convergence check, which is O(npK).
+A nice property about SSR with post-convergence check is the quantity $x_j^Tr(\lambda_k)/n$ is calculated at $\lambda_k$ in (2) during post-convergence check. Then in SSR screening at $\lambda_{k+1}$ (4), this quantity is reused. Besides the quantity $x_j^Tr(\lambda_k)/n$, other parts of the computation of (4) have almost zero cost. In conclusion, the computation cost of SSR is generally only the cost of the post-convergence check, which is O(npK).
 
 \subsection{Safe rules}
 
 Compared to strong rules, safe rules can discard features safely. Those discarded features are guaranteed to have zero coefficients and we do not need an addition check to validate them. We will mainly focus on enhanced dual polytope projections (EDPP) rules\citep{wang2013lasso}, because they outperform other current safe rules and are easy to incorporate in our method.
 
-The EDPP rules are derived from the dual formulation of the lasso problem (1):
-
-\begin{equation}
-    \begin{split}
-        \hat{\theta}(\lambda) = \underset{\theta\in \mathbb{R}^n}{\mathrm{argmax}}\frac{1}{2n}||y||_2^2-\frac{n\lambda}{2}||\theta-\frac{y}{n\lambda}||_2^2\\
-        \textrm{subject to } |x_j^T\theta|\leq 1,\quad \forall j=1,2,...,p.
-    \end{split}
-\end{equation}
-This is minimizing the distance between $\theta$ and the rescaled response $\frac{y}{n\lambda}$ subject to the conditions $|x_j^T\theta|\leq 1$. Geometrically $\hat{\theta}(\lambda)$ can be viewed as the projection of the rescaled response $\frac{y}{n\lambda}$ onto the polytope defined by $|x_j^T\theta|\leq 1$. As $\lambda$ decreases alone the solution path, the rescaled response $\frac{y}{n\lambda}$ moves further away from 0 and the projection $\hat{\theta}(\lambda)$ moves with it. Because $\hat{\theta}(\lambda)$ is a projection onto a non-empty closed convex set, the movement of the projection can be bounded and thus $\hat{\theta}(\lambda)$ can be bounded given some previous solution $\hat{\theta}(\lambda')$ at some $\lambda'>\lambda$.
-
-In fact, the solution of the primal problem (1) and the solution of the dual problem (7) can be linked by:
-\begin{equation}
-    \hat{\theta}(\lambda)=\frac{y-X\hat{\beta}(\lambda)}{n\lambda}=\frac{r(\lambda)}{n\lambda},
-\end{equation}
-so bounding $\hat{\theta}(\lambda)$ is essentially bounding the residual vector $r(\lambda)$. Then using the KKT conditions, some features can be guaranteed to have zero coefficients and be discarded safely. Two forms of the EDPP rule, basic EDPP (BEDPP) and sequential EDPP (SEDPP)\citep{wang2013lasso}, were proposed and under the standardization (2) can be simplified in the following theorems\citep{zeng2017efficient}:
+The EDPP rules are derived from the dual formulation of the lasso problem and provide a bound for the residual vector $r(\lambda)$. Then using the KKT conditions, some features can be guaranteed to have zero coefficients and be discarded safely. Two forms of the EDPP rule, basic EDPP (BEDPP) and sequential EDPP (SEDPP)\citep{wang2013lasso}, were proposed and under the standardization (2) can be simplified in the following theorems\citep{zeng2017efficient}:
 
 \begin{theorem}[BEDPP]
     For the lasso problem (1), let $\lambda_0:=\max_j|x_j^Ty/n|$ and $x_*=argmax_{x_j}|x_j^Ty/n|$. Under (2) and for any $\lambda\in(0,\lambda_0]$, we have $\hat{\beta}_j(\lambda)=0$ if
@@ -183,9 +130,9 @@ so bounding $\hat{\theta}(\lambda)$ is essentially bounding the residual vector 
     \end{enumerate}
 \end{theorem}
 
-In BEDPP rule (9), the most costly parts of computation that take O(np) time are the computation of $\{x_j^Ty\}_{j=1}^p$ and $\{x_j^Tx_*\}_{j=1}^p$ ($x_*^Ty$ is an element of $\{x_j^Ty\}_{j=1}^p$). These quantities does not depend on $\lambda_k$ and thus only need to be computed once at the beginning and stored. After this step is finished, other computation of the rule takes almost zero time, so BEDPP rule can be viewed as an one-step rule with O(np) cost.
+In BEDPP rule (4), the most costly parts of computation that take O(np) time are the computation of $\{x_j^Ty\}_{j=1}^p$ and $\{x_j^Tx_*\}_{j=1}^p$ ($x_*^Ty$ is an element of $\{x_j^Ty\}_{j=1}^p$). These quantities does not depend on $\lambda_k$ and thus only need to be computed once at the beginning and stored. After this step, other computation of the rule takes almost zero time, so BEDPP rule can be viewed as an one-step rule with O(np) cost.
 
-In SEDPP rule (10), it requires computation of $\{x_j^Ty\}_{j=1}^p$ and $\{x_j^Tr(\lambda_k)\}_{j=1}^p$ ($x_j^T\hat{y}(\lambda_k)$ can be computed as $x_j^Ty-x_j^Tr(\lambda_k)$). For screening at every $\lambda_{k+1}$, $\{x_j^Tr(\lambda_k)\}_{j=1}^p$ need to be recalculated and this step takes O(np) time. Thus SEDPP is a sequential rule and computation of the sequence takes O(npK) time.
+In SEDPP rule (5), it requires computation of $\{x_j^Ty\}_{j=1}^p$ and $\{x_j^Tr(\lambda_k)\}_{j=1}^p$ ($x_j^T\hat{y}(\lambda_k)$ can be computed as $x_j^Ty-x_j^Tr(\lambda_k)$). For screening at every $\lambda_{k+1}$, $\{x_j^Tr(\lambda_k)\}_{j=1}^p$ need to be recalculated and this step takes O(np) time. Thus SEDPP is a sequential rule and computation of the sequence takes O(npK) time.
 
 BEDPP is much faster, but at each $\lambda_k$, it is bounding $r(\lambda_k)$ using $r(\lambda_0)=y$ as a reference. As $\lambda_k$ gets further away from $\lambda_0$, this bound becomes less precise and the screening rule becomes less powerful. SEDPP is slower, but at each $\lambda_{k+1}$, it uses $r(\lambda_{k})$ as the reference. Because $\lambda_{k+1}$ and $\lambda_k$ are close, the bound will be tight and screening will keep being powerful.
 
@@ -209,34 +156,34 @@ The BASIL is most beneficial when the whole $X$ matrix is to large to be fit int
 
 In this section, we will introduce the framework of adaptive safe-strong rules, implement them with EDPP as the safe rule to form Ada-SSR-EDPP and propose a strategy to adaptively updating the reference.
 
-\subsection{Adaptive EDPP safe rule}
+\subsection{Adaptive safe rule}
 
-From the SEDPP rule (10) in Theorem 2.2, we can do screening at $\lambda_{k+1}$ given the solution at $\lambda_k$. Now consider we are solving the lasso problem along the path $\lambda_0,...,\lambda_k,\lambda_{k+2},...,\lambda_K$ instead. Using the SEDPP rule, we can do screening at $\lambda_{k+2}$ as well, given the solution at $\lambda_k$, which is considered the previous solution now. Similarly, with solution at $\lambda_k$ as the reference, we can keep screening for a number of $\lambda$-values: $\lambda_{k+1},\lambda_{k+2},...$ until it is beneficial to update the solution at some $\lambda_{K+B}$ as the new reference and in this way all the discarded features are guaranteed to be zero. Adaptive EDPP is still a safe rule, but it is neither sequential nor one-step.
+From the SEDPP rule (6) in Theorem 2.2, we can do screening at $\lambda_{k+1}$ given the solution at $\lambda_k$. Now consider we are solving the lasso problem along the path $\lambda_0,...,\lambda_k,\lambda_{k+2},...,\lambda_K$ instead. Using the SEDPP rule, we can do screening at $\lambda_{k+2}$ as well, given the solution at $\lambda_k$, which is considered the previous solution now. Similarly, with solution at $\lambda_k$ as the reference, we can keep screening for a number of $\lambda$-values: $\lambda_{k+1},\lambda_{k+2},...$ until it is beneficial to update the solution at some $\lambda_{K+B}$ as the new reference and in this way all the discarded features are guaranteed to be zero. Adaptive EDPP is still a safe rule, but it is neither sequential nor one-step.
 
 Similar to SEDPP, the Adaptive EDPP rule can be stated in the following theorem:
 
 \begin{theorem}[Adaptive EDPP]
     For the lasso problem (1), let $\lambda_0:=\max_j|x_j^Ty/n|$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$. Under condition (2)
     \begin{enumerate}
-        \item For any $k=1,2,...,K-1$, given $\hat{\beta}(\lambda_k)$, $r(\lambda_k)$ and $\hat{y}(\lambda_k):=X\hat{\beta}(\lambda_k)$, then for some $B$ and any $b$ s.t. $k<k+b\leq k+B\leq K$, $\hat{\beta}_j(\lambda_{k+b})=0$ if
+        \item For any $k=1,2,...,K-1$, given $\hat{\beta}(\lambda_k)$, $r(\lambda_k)$ and $\hat{y}(\lambda_k):=X\hat{\beta}(\lambda_k)$, then for some update point $k+B$ and any $b$ s.t. $k<k+b\leq k+B\leq K$, $\hat{\beta}_j(\lambda_{k+b})=0$ if
         \begin{equation}
             \begin{split}
                 &\left|2\lambda_{k+b}x_j^Tr(\lambda_k)+(\lambda_k-\lambda_{k+b})\left( x_j^Ty-\frac{y^T\hat{y}(\lambda_k)x_j^T\hat{y}(\lambda_k)}{||\hat{y}(\lambda_k)||_2^2}\right)\right|\\&<2n\lambda_k\lambda_{k+b}-(\lambda_k-\lambda_{k+b})\sqrt{n||y||_2^2-\frac{n(y^T\hat{y}(\lambda_k))^2}{||\hat{y}(\lambda_k)||_2^2}}
             \end{split}
         \end{equation}
-        \item For k=0, i.e., $\lambda_k=\lambda_0$, then for some $B$ and any $b$ s.t. $0<b\leq B\leq K$, $\hat{\beta}_j(\lambda_{k+b})=0$ if
+        \item For k=0, i.e., $\lambda_k=\lambda_0$, then for some update point $k+B$ and any $b$ s.t. $0<b\leq B\leq K$, $\hat{\beta}_j(\lambda_{k+b})=0$ if
         \begin{equation}
         |(\lambda_0+\lambda_b)x_j^Ty-(\lambda_0-\lambda_b)sign(x_*^Ty)\lambda_0x_j^Tx_*|<2n\lambda_0\lambda_b-(\lambda_0-\lambda_b)\sqrt{n||y||_2^2-n^2\lambda_0^2}.
     \end{equation}
     \end{enumerate}
 \end{theorem}
 
-For each $\lambda$-value in one update $\lambda_{k+1},...,\lambda_{k+B}$, the computation in (11) or (12) is the same, except for one quantity $\lambda_{k+b}$ ($\lambda_b$ in the case $k=0$). The most expensive computations are $x_j^Tr(\lambda_k)$, $x_j^Tx_*$ and $x_j^Ty$, for $j=1,2,...,p$. $x_j^Ty$ and $x_j^Tx_*$ are the same for all $\lambda$-values, $x_j^Tr(\lambda_k)$ are the same for all $\lambda$-values within the update and $x_j^T\hat{y}(\lambda_k)=x_j^Ty-x_j^Tr(\lambda_k)$, so once they are computed, they can be stored and reused to avoid more computation in that update. These two computations take $O(np)$ time and the rest computation in (11) and (12) take at most a lower order of $O(p)$ time.
+For each $\lambda$-value in one update $\lambda_{k+1},...,\lambda_{k+B}$, the computation in (7) or (8) is the same, except for one quantity $\lambda_{k+b}$ ($\lambda_b$ in the case $k=0$). The most expensive computations are $x_j^Tr(\lambda_k)$, $x_j^Tx_*$ and $x_j^Ty$, for $j=1,2,...,p$. $x_j^Ty$ and $x_j^Tx_*$ are the same for all $\lambda$-values, $x_j^Tr(\lambda_k)$ are the same for all $\lambda$-values within the update and $x_j^T\hat{y}(\lambda_k)=x_j^Ty-x_j^Tr(\lambda_k)$, so once they are computed, they can be stored and reused to avoid more computation in that update. These two computations take $O(np)$ time and the rest computation in (7) and (8) take at most a lower order of $O(p)$ time.
 
 Compared to one-step methods like BEDPP, after updating, the solution as the reference at $\lambda_k$ and the solution at some $\lambda_{k+b}$ in that update are usually relatively close, so screening at $\lambda_{k+b}$ using solution at $\lambda_k$ will remain powerful. For one-step method, as $\lambda_k$ gets further away from $\lambda_0$, the screening power can drop drastically and
 may not be any beneficial after that. Compared to sequential methods like SEDPP, the adaptive method only requires one $O(np)$ computation in one update, while SEDPP requires one $O(np)$ computation for each $\lambda$-value. The framework of adaptive safe screening can also be easily applied to other sequential safe rules, to form a family of adaptive safe rules to achieve the same improvement.
 
-\subsection{Adaptive safe strong rule on top of adaptive EDPP rule}
+\subsection{Adaptive safe strong rule on top of adaptive safe rule}
 
 Because HSSR \citep{zeng2017efficient} have been shown to provide significant speedup compared to safe rules alone, we should also consider adding a strong rule screening after the adaptive EDPP rule screening. The SSR and adpative EDPP rule combined will form our adaptive safe strong rule: Ada-SSR-EDPP.
 
@@ -288,7 +235,7 @@ In this section, we will show the algorithm to solve the lasso problem over the 
 \subsection{Adaptive update algorithm}
 \label{sec:adaptive}
 
-In this section we will fill in line 11 in Algorithm 2. We will develop an algorithm to adaptively determining when update the reference for screening, by evaluating screening power at previous $\lambda$-values since the last update. Our goal is to minimize the computation cost, so we will first analyse computation complexity for each part in Algorithm 2. Then we will propose an adaptive algorithm that can minimize the entire computation cost.
+In this section we will fill in line 11 in Algorithm 1. We will develop an algorithm to adaptively determining when update the reference for screening, by evaluating screening power at previous $\lambda$-values since the last update. Our goal is to minimize the computation cost, so we will first analyse computation complexity for each part in Algorithm 1. Then we will propose an adaptive algorithm that can minimize the entire computation cost.
 
 \subsubsection{Complexity analysis}
 
@@ -302,7 +249,7 @@ Under these assumptions, there are two dominating parts in the algorithm within 
 
 The first term is the average cost for safe screening. Delaying next update (increasing $B$) means reusing calculation at the previous update more times for the safe screening and thus reducing the average cost. The second term is the average cost for KKT condition checking. If the old reference is reused too many times, safe rule screening becomes less powerful and the number of KKT condition checks required ($|\mathcal{S}_{k+b}|$) increases.
 
-To better illustrate this two effects, we considered the most naive and simple updating scheme: update the reference periodically after every other $B$ $\lambda$ values. The following plot illustrates the effect of update delay $B$ on $|\mathcal{S}_{k+b}|$ in a real data set solved over a path of $K=100$ $\lambda$-values. The y axis is the proportion of discarded features, calculated as $1-|\mathcal{S}_{k+b}|/p$.
+To better illustrate these two effects, we considered the most naive and simple updating scheme: update the reference periodically after every other $B$ $\lambda$ values. The following plot illustrates the effect of update delay $B$ on $|\mathcal{S}_{k+b}|$ in a real data set solved over a path of $K=100$ $\lambda$-values. The y axis is the proportion of discarded features, calculated as $1-|\mathcal{S}_{k+b}|/p$.
 
 \begin{figure}[H]
     \centering
@@ -316,16 +263,16 @@ This example also shows the timing of updates should be decided carefully and ad
 
 \subsubsection{Efficient updating algorithm}
 
-From previous example, we assume the average cost is a convex function of distance from last update $B$, which decreases first and then after some optimal value increases again. If we want to minimize the average cost per $\lambda$-value, we need to update when using the old reference for one more $\lambda$-value will increase the average cost. That is, we should update the reference to $\lambda_{k+B}$ when $\bar{T}_k(B+1)>\bar{T}_k(B)$. For practice, we will update the reference to $\lambda_{k+B}$ when $\bar{T}_k(B)>\bar{T}_k(B-1)$ instead, because $\bar{T}_k(B+1)$ cannot be calculated without doing screening at $\lambda_{k+B+1}$. These two conditions should be close and thus this substitution should also be close to optimal. From (13), the latter condition will be:
+From previous example, we assume the average cost is a convex function of distance from last update $B$, which decreases first and then after some optimal value increases again. If we want to minimize the average cost per $\lambda$-value, we need to update when using the old reference for one more $\lambda$-value will increase the average cost. That is, we should update the reference to $\lambda_{k+B}$ when $\bar{T}_k(B+1)>\bar{T}_k(B)$. For practice, we will update the reference to $\lambda_{k+B}$ when $\bar{T}_k(B)>\bar{T}_k(B-1)$ instead, because $\bar{T}_k(B+1)$ cannot be calculated without doing screening at $\lambda_{k+B+1}$. These two conditions should be close and thus this substitution should also be close to optimal. Combined with (9), the latter condition will be:
 
 \begin{equation}
     (B-1)|\mathcal{S}_{k+B}|-\sum_{b=1}^{B-1}|\mathcal{S}_{k+b}|>p.
 \end{equation}
 
 
-This updating condition is a greedy condition that only considers the cost up to the current $\lambda$ value. In practice, we cannot know about future $\lambda$ values so this is the most reasonable condition. In fact, it provides a robust strategy towards three most common scenarios. First, if the screening power stays high, meaning $\mathcal{S}_{k+b}$ is small for all $b$, then the left-hand-side of (14) will be small and thus at this point we will not update to further exploit the last update. Second, if the screening power has been high for a while but dropped suddenly, meaning $\mathcal{S}_{k+B}$ is large but $\mathcal{S}_{k+b}$ are mostly small for $b=1,2,...,B-1$, then the left-hand-side of (14) will be large and we will update the useless old reference to a new helpful one. Last, if the screening power drops dramatically right after the last update, meaning $\mathcal{S}_{k+b}$ are close to $p$ for $b=2,3,...,B$, then the left-hand-side of (14) will be approximately $p-|\mathcal{S}_1|<p$. We will not update although old reference is useless, because if we did, the new update would become useless quickly as well.
+This updating condition is a greedy condition that only considers the cost up to the current $\lambda$ value. In practice, we cannot know about future $\lambda$ values so this is the most reasonable condition. In fact, it provides a robust strategy towards three most common scenarios. First, if the screening power stays high, meaning $\mathcal{S}_{k+b}$ is small for all $b$, then the left-hand-side of (10) will be small and thus at this point we will not update to further exploit the last update. Second, if the screening power has been high for a while but dropped suddenly, meaning $\mathcal{S}_{k+B}$ is large but $\mathcal{S}_{k+b}$ are mostly small for $b=1,2,...,B-1$, then the left-hand-side of (10) will be large and we will update the useless old reference to a new helpful one. Last, if the screening power drops dramatically right after the last update, meaning $\mathcal{S}_{k+b}$ are close to $p$ for $b=2,3,...,B$, then the left-hand-side of (10) will be approximately $p-|\mathcal{S}_1|<p$. We will not update although old reference is useless, because if we did, the new update would become useless quickly as well.
 
-This adaptive updating condition fills in the condition on line 11 in Algorithm 2 and forms a complete pathwise lasso algorithm with adaptive safe strong screening. 
+This adaptive updating condition fills in the condition on line 11 in Algorithm 1 and forms a complete pathwise lasso algorithm with adaptive safe strong screening. 
 
 
 \section{Extension to other lasso type problems}
@@ -392,7 +339,7 @@ Then $\hat{\beta}_j(\lambda_{k+b})=0$ if
         \end{equation}
 \end{theorem}
 
-When computing the adaptive Slores, $\{x_j^Ty\}_{j=1}^p$ needs to be computed only once, stored and reused for the whole solution path. $\{x_j^Tx_*\}_{j=1}^p$ can be reused unless $x_*$ changes. Other than those two terms, the only term that requires expensive $O(np)$ computation is $\{x_j^Tr(\lambda_k)\}_{j=1}^p$, which only needs to be computed at the time of each update. Thus algorithm 2 for adaptive safe strong rule can be done with Slores rule instead of EDPP rule to form Ada-SSR-Slores that does screening for sparse logistic regression model.
+When computing the adaptive Slores, $\{x_j^Ty\}_{j=1}^p$ needs to be computed only once, stored and reused for the whole solution path. $\{x_j^Tx_*\}_{j=1}^p$ can be reused unless $x_*$ changes. Other than those two terms, the only term that requires expensive $O(np)$ computation is $\{x_j^Tr(\lambda_k)\}_{j=1}^p$, which only needs to be computed at the time of each update. Thus algorithm 1 for adaptive safe strong rule can be done with Slores rule instead of EDPP rule to form Ada-SSR-Slores that does screening for sparse logistic regression model.
 
 \subsection{Adaptive safe strong rule for group lasso}
 
