@@ -1,2 +1,2 @@
 main.pdf: main.tex
-	cleantex -be main
+	cleantex -be batch-hssr
