@@ -8,17 +8,17 @@ where $y$ is the $n\times 1$ response vector correspond to $n$ observations, $X=
 
 The lasso model has several attractive properties compared to least squares regression, including increased stability of estimation, increased prediction accuracy, and automatic variable selection arising from the fact that it yields sparse estimates of $\beta$.  As a result, it is widely applied in different fields, such as gene expression data analysis, image recognition and text mining, and has been extended in several ways, such as group lasso\citep{yuan2006model}, elastic net\citep{zou2005regularization} and sparse generalized linear models. Because of its wide popularity, solving the lasso model efficiently is an important topic in statistics and machine learning.
 
-Because the optimal value of $\lambda$ is not known in advance, typical practice is to solve for $\beta$ along a sequence of values of the tuning parameter $\lambda$, known as the solution path.  Pathwise algorithms can be efficiently implemented by using the solution at a previous $\lambda$ value as a ``warm start'' for the next value of $\lambda$.  In particular, the pathwise coordinate descent algorithm\citep{friedman2007pathwise}, which optimizes $\beta(\lambda)$ one element at a time with the remaining coordinates held fixed, has been shown to outperform other lasso algorithms such as LARS (least angle regression)\citep{efron2004least}, especially in high dimensional settings where $p$ is large. In sparse settings, it scales up very well with a computational cost of approximately $O(np)$. 
+Because the optimal value of $\lambda$ is not known in advance, typical practice is to solve for $\beta$ along a sequence of values of the tuning parameter $\lambda$, known as the solution path.  Pathwise algorithms can be efficiently implemented to address this challenge, by using the solution at a previous $\lambda$ value as a ``warm start'' for the next value of $\lambda$.  In particular, the pathwise coordinate descent algorithm\citep{friedman2007pathwise}, which optimizes $\beta(\lambda)$ one element at a time with the remaining coordinates held fixed, has been shown to outperform other lasso algorithms such as LARS (least angle regression)\citep{efron2004least}, especially in high dimensional settings where $p$ is large. In sparse settings, it scales up very well with a computational cost of approximately $O(np)$. 
 
 However, modern data collection and storage techniques allow researchers to measure an increasingly large number of features, which introduce additional computational challenges. In particular, it may not be possible to store the feature matrix, which can require many GBs of memory to store, in memory. One can resolve this problem by using a memory mapping package such as \textbf{bigmemory}, which allows us to store the feature matrix on disk and read it portions of it as needed; however, this results in frequent reading from disk, which is extremely slow compared to other parts of the algorithm and becomes a bottleneck with respect to the computational burden of fitting lasso models on very large data sets.
 
-One promising technique to address this challenge is feature screening. The lasso model solution is sparse in the sense that most coefficients will be exactly zero; for these ``inactive'' coefficients we do not need their associated features.  In theory, if we knew which coefficients were nonzero at each value of $\lambda$, we could read into memory only those features and leave the remaining features on disk. In reality, we cannot know this prior to fitting the model -- however, through the clever use of feature screening rules, we can greatly reduce the number of times inactive features are read into memory, thereby minimizing the computational burden.  In what follows, we refer to features left on disk as ``discarded'' features, although it is worth clarifying that this is not a permanent decision and a decision is made for each $\lambda$ values: for example, a feature can be discarded at one value of $\lambda$ but included in the list of potentially active features at other values of $\lambda$.
+One promising technique to address this challenge is feature screening. The lasso model solution is sparse in the sense that most coefficients will be exactly zero; for these ``inactive'' coefficients we do not need their associated features.  In theory, if we knew which coefficients were nonzero at each value of $\lambda$, we could read into memory only those features and leave the remaining features on disk. In reality, we cannot know this prior to fitting the model -- however, through the clever use of feature screening rules, we can greatly reduce the number of times inactive features are read into memory, thereby minimizing the computational burden. There are many screening techniques where the solution obtained after screening will still be the global optimum given it exists, and in this paper we will only focus on this type of screening. In what follows, we refer to features left on disk as ``discarded'' features, although it is worth clarifying that this is not a permanent decision and a decision is made for each $\lambda$ values: for example, a feature can be discarded at one value of $\lambda$ but included in the list of potentially active features at other values of $\lambda$.
 
 There are two important categories of features screening rules: ``strong'' rules\citep{tibshirani2011regression}\citep{qian2019fast}, which occasionally incorrectly discard some active features, and ``safe'' rules\citep{ghaoui2010safe,wang2013lasso,xiang2012fast, xiang2011learning}, which are guaranteed never to do so.  As one might expect, strong rules tend to be easier to calculate; however, because mistakes are possible, one must add a post-convergence check to ensure that no features were incorrectly discarded. This check is not necessary with safe rules. However, safe rules are considerably less powerful at discarding features than strong rules. More recently, hybrid approaches \citep{zeng2017efficient} combining the two types of rules have been shown to be more efficient than either type of rule alone.
 
-Previous safe screening rules can also be divided into two categories, sequential rules and one-step rules, by how the screening is carried out along the path of $\lambda$ values. Sequential rules do heavy computation for each $\lambda$ values using solution from its previous $\lambda$ value, so they are slower but relatively powerful at each $\lambda$ values. One-step rules only require heavy computation at the beginning and thus are faster but they cannot remain powerful along the path for long. 
+Previous safe screening rules can also be divided into two categories, sequential rules and one-step rules, by how the screening is carried out along the path of $\lambda$ values. Sequential rules address the challenge of the solution path and do screening for each $\lambda$ values using solution from its previous $\lambda$ value, so they require heavy computation but are relatively powerful, at each $\lambda$ values. One-step rules only require heavy computation at the beginning and thus are faster but they cannot remain powerful along the path for long because they don't utilize previous solution. 
 
-In this paper, we proposed an adaptive safe screening scheme that changes how screening is done along the path of $\lambda$ values. We do safe screening on $\lambda$ values alone the path referencing to the same solution at the $\lambda$ value in the beginning, as in one-step rules, until it is beneficial to update to a new $\lambda$ value as the reference. This screening scheme helps avoid disadvantages of both sequential rules and one-step rules. On one hand, reusing the same solution as reference avoids many costly computation before updating and on the other hand, referring to solution at a closer $\lambda$ value provides more screening power. An adaptive scheme determines when to update the reference based on the previous screening performance, to better balance these two effects. It will be shown that our adaptive rule can greatly reduce the computation time and outperform other methods under all scenarios. Following the hybrid approaches, we also combined our approach with strong rules to form adaptive safe strong rules. Similar to hybrid approaches, our method can also utilize any member of safe rules, giving it the potential for further speed up given new safe rules and the flexibility to extend to other lasso type models. For example we extended the method to work with logistic regression with lasso penalty and group lasso.
+In this paper, we proposed an adaptive safe screening scheme that changes how screening is done along the path of $\lambda$ values. We do safe screening on $\lambda$ values alone the path referencing to the same solution at the $\lambda$ value in the beginning, as in one-step rules, until it is beneficial to update to a new $\lambda$ value as the reference. This screening scheme helps avoid disadvantages of both sequential rules and one-step rules. On one hand, reusing the same solution as reference avoids many costly computation before updating and on the other hand, referring to solution at a closer $\lambda$ value provides more screening power. An adaptive scheme determines when to update the reference based on the previous screening performance, to better balance these two effects. It will be shown that our adaptive rule can greatly reduce the computation time and outperform other methods under all scenarios. Following the hybrid approaches, we also combined our approach with strong rules to form adaptive hybrid rules. Our method can utilize any member of safe rules, giving it the potential for further speed up given new safe rules and the flexibility to extend to other lasso type models. For example we extended the method to work with logistic regression with lasso penalty and group lasso.
 
 This manuscript provides a brief review of existing feature screening rules in Section\ref{sec:existing} as well as the following novel contributions:
 
@@ -33,7 +33,7 @@ This manuscript provides a brief review of existing feature screening rules in S
 \section{Existing feature screening rules}
 \label{sec:existing}
 
-Throughout this paper, it will be assumed that $y$ is centeredand $\{x_j\}_{j=1}^p$ are centered and standardized:
+Throughout this paper, it will be assumed that $y$ is centered and $\{x_j\}_{j=1}^p$ are centered and standardized:
 \begin{equation}
     \sum_{i=1}^ny_i=0, \qquad \sum_{i=1}^n x_{ij}=0, \qquad \sum_{i=1}^n x_{ij}^2=n,\qquad j=1,2,...,p.
 \end{equation}
@@ -41,7 +41,7 @@ This standardization make it reasonable to apply the same penalty to all feature
 
 Typical practice when fitting lasso models is to solve for $\hat{\beta}(\lambda)$ along a decreasing sequence of $K+1$ values of $\lambda$: $\lambda_0 > \lambda_1 > \cdots > \lambda_K$.  As we will discuss shortly, we set $\lambda_0=\max_j|x_j^Ty/n|$ throughout; this ensures that $\hat{\beta}(\lambda_0)=0$, making it a natural point from which to start.
 
- Pathwise algorithms are developed to address the challenge of the sequence with a strategy known as the ``warm start''. For the model at any $\lambda$-value $\lambda_{k+1}$, letting $r(\lambda_{k+1}) \equiv y-X\hat{\beta}(\lambda_{k+1})$ denote the vector of residuals, the solution $\hat{\beta}(\lambda_{k+1})$ can be computed using the previous solution $\hat{\beta}(\lambda_k)$ as the initial value in the algorithm. Pathwise coordinate descent is a popular pathwise algorithm fitting a solution path for lasso problem and will be used as the lasso algorithm for the rest of the paper.
+ Pathwise algorithms are developed to address the challenge of the solution path with a strategy known as the ``warm start''. For the model at any $\lambda$-value $\lambda_{k+1}$, letting $r(\lambda_{k+1}) \equiv y-X\hat{\beta}(\lambda_{k+1})$ denote the vector of residuals, the solution $\hat{\beta}(\lambda_{k+1})$ can be computed using the previous solution $\hat{\beta}(\lambda_k)$ as the initial value in the algorithm. Pathwise coordinate descent is a popular pathwise algorithm fitting a solution path for lasso problem and will be used as the lasso algorithm for the rest of the paper.
 
 In convex optimization, the Karush-Kuhn-Tucker (KKT) conditions are both necessary and sufficient for any optimal solution.  Screening rules take advantage of these KKT conditions in order to discard inactive coefficients.  For the lasso, the KKT conditions governing the optimal solution $\hat{\beta}(\lambda)$ are given by
 \begin{equation}
@@ -50,7 +50,7 @@ In convex optimization, the Karush-Kuhn-Tucker (KKT) conditions are both necessa
     |&x_j^Tr(\lambda)/n|& &\leq \lambda & & \textrm{if} \quad \hat{\beta}(\lambda)_j= 0.
   \end{aligned}
 \end{equation}
-If the residuals were known, we could safely conclude that $\hat{\beta}(\lambda)_j=0$ by checking the second condition holds as a strict inequality.  The complication, of course, is that the residuals are not known until after we have solved for all the coefficients.  However, when fitting a solution path, residuals at previous $\lambda$-values provide information about residuals at the next $\lambda$-value and thus be used for screening.  Note that in Algorithm~\ref{Alg:pathwise-coordinate-descent}, the residuals $r$ are computed at each $\lambda$-value and can thus be conveniently reused for the purpose of feature screening.
+If the residuals were known, we could safely conclude that $\hat{\beta}(\lambda)_j=0$ by checking the second condition holds as a strict inequality.  The complication, of course, is that the residuals are not known until after we have solved for all the coefficients.  However, when fitting a solution path, residuals at previous $\lambda$-values provide information about residuals at the next $\lambda$-value and thus be used for screening. Note that if we have $\lambda_0=\max_j|x_j^Ty/n|$ and $\hat{\beta}(\lambda_0)=0$, then $r(\lambda_0)=y$ satisfies the KKT conditions and thus $\hat{\beta}(\lambda_0)=0$ is the optimal solution.
 
 \subsection{Active-set Cycling}
 \label{sec:active}
@@ -120,10 +120,10 @@ The BASIL is most beneficial when the whole $X$ matrix is to large to be fit int
 
 
 
-\section{Adaptive safe-strong rule}
+\section{Adaptive hybrid rule}
 \label{sec:method}
 
-In this section, we will introduce the framework of adaptive safe-strong rules, implement them with EDPP as the safe rule to form Ada-SSR-EDPP and propose a strategy to adaptively updating the reference.
+In this section, we will introduce the framework of adaptive hybrid rules, implement them with EDPP as the safe rule to form Ada-SSR-EDPP and propose a strategy to adaptively updating the reference.
 
 \subsection{Adaptive safe rule}
 
@@ -152,9 +152,9 @@ For each $\lambda$-value in one update $\lambda_{k+1},...,\lambda_{k+B}$, the co
 Compared to one-step methods like BEDPP, after updating, the solution as the reference at $\lambda_k$ and the solution at some $\lambda_{k+b}$ in that update are usually relatively close, so screening at $\lambda_{k+b}$ using solution at $\lambda_k$ will remain powerful. For one-step method, as $\lambda_k$ gets further away from $\lambda_0$, the screening power can drop drastically and
 may not be any beneficial after that. Compared to sequential methods like SEDPP, the adaptive method only requires one $O(np)$ computation in one update, while SEDPP requires one $O(np)$ computation for each $\lambda$-value. The framework of adaptive safe screening can also be easily applied to other sequential safe rules, to form a family of adaptive safe rules to achieve the same improvement.
 
-\subsection{Adaptive safe strong rule on top of adaptive safe rule}
+\subsection{Adaptive hybrid rule on top of adaptive safe rule}
 
-Because HSSR \citep{zeng2017efficient} have been shown to provide significant speedup compared to safe rules alone, we should also consider adding a strong rule screening after the adaptive EDPP rule screening. The SSR and adpative EDPP rule combined will form our adaptive safe strong rule: Ada-SSR-EDPP.
+Because HSSR \citep{zeng2017efficient} have been shown to provide significant speedup compared to safe rules alone, we should also consider adding a strong rule screening after the adaptive EDPP rule screening. The SSR and adpative EDPP rule combined will form our adaptive hybrid rule: Ada-SSR-EDPP.
 
 This combination is not trivial. For ordinary SSR, the quantities $x_j^Tr(\lambda_k)$ used in (4) is already computed in the previous post-convergence check in (2). However, combined with safe rules, previous post-convergence check only needs to check features that are not discarded at the previous $\lambda$-value. Thus, for features that are discarded at the previous $\lambda$-value but not at the current $\lambda$-value, their corresponding $x_j^Tr(\lambda_k)$ have not been computed yet and thus cannot be used without additional cost. Similar to the idea of BASIL \citep{qian2019fast}, we can also do the strong rule screening adaptively by using the latest $x_j^Tr(\lambda_k)$ available, which is computed by adaptive EDPP rule at the latest update, to reduce the number of required computations.
 
@@ -162,9 +162,9 @@ We are going to combine adaptive EDPP rule and SSR to form the Ada-SSR-EDPP as f
 
 By choosing the same reference for adaptive EDPP rule and adaptive SSR, the quantity $x_j^Tr(\lambda_k)$ only needs to be computed once and can be used by both rules. Also, because adaptive EDPP rule can stay powerful, it keeps the set of features that require post-convergence check small, while because basic EDPP loses power for $\lambda$-values that are far away from $\lambda_0$, post-convergence check for HSSR will be more expensive.
 
-\subsection{Pathwise lasso algorithm with adaptive safe strong rule}
+\subsection{Pathwise lasso algorithm with adaptive hybrid rule}
 
-In this section, we will show the algorithm to solve the lasso problem over the solution path with pathwise coordinate descent algorithm and our adaptive safe strong screening rule. The pathwise coordinate descent algorithm can be substituted by any other pathwise lasso algorithms and the adaptive EDPP can also be substituted by any other adaptive safe rules in our framework. Note here the first reference chosen will be $\lambda_0$, where the residuals vector $r(\lambda_0)$ is just the response $y$, because all the $\hat{\beta}(\lambda_0)$ are zero. $\{x_j^Ty\}_{j=1}^p$ need to be computed at the beginning and stored for the whole path.
+In this section, we will show the algorithm to solve the lasso problem over the solution path with pathwise coordinate descent algorithm and our adaptive hybrid screening rule. The pathwise coordinate descent algorithm can be substituted by any other pathwise lasso algorithms and the adaptive EDPP can also be substituted by any other adaptive safe rules in our framework. Note here the first reference chosen will be $\lambda_0$, where the residuals vector $r(\lambda_0)$ is just the response $y$, because all the $\hat{\beta}(\lambda_0)$ are zero. $\{x_j^Ty\}_{j=1}^p$ need to be computed at the beginning and stored for the whole path.
 
 \begin{algorithm}[H]
     \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}\SetKwInOut{Pre}{Pre-compute}\SetKwInOut{Initialize}{Initialize}
@@ -198,7 +198,7 @@ In this section, we will show the algorithm to solve the lasso problem over the 
             
     }
     \Output{$\{\hat{\beta}(\lambda_{k})\}_{k=1}^K, r(\lambda_{k+B})$}
-    \caption{Pathwise lasso algorithm with adaptive safe strong rule screening}
+    \caption{Pathwise lasso algorithm with adaptive hybrid rule screening}
 \end{algorithm}
 
 \subsection{Adaptive update algorithm}
@@ -232,7 +232,7 @@ This example also shows the timing of updates should be decided carefully and ad
 
 \subsubsection{Efficient updating algorithm}
 
-From previous example, we assume the average cost is a convex function of distance from last update $B$, which decreases first and then after some optimal value increases again. If we want to minimize the average cost per $\lambda$-value, we need to update when using the old reference for one more $\lambda$-value will increase the average cost. That is, we should update the reference to $\lambda_{k+B}$ when $\bar{T}_k(B+1)>\bar{T}_k(B)$. For practice, we will update the reference to $\lambda_{k+B}$ when $\bar{T}_k(B)>\bar{T}_k(B-1)$ instead, because $\bar{T}_k(B+1)$ cannot be calculated without doing screening at $\lambda_{k+B+1}$. These two conditions should be close and thus this substitution should also be close to optimal. Combined with (9), the latter condition will be:
+From previous example, we assume the average cost is a convex function of distance from last update $B$, which decreases first and then after some optimal value increases again. If we want to minimize the average cost per $\lambda$-value, we need to update when using the old reference for one more $\lambda$-value will increase the average cost. That is, we should update the reference to $\lambda_{k+B}$ when $\bar{T}_k(B+1)>\bar{T}_k(B)$. For practice, we will update the reference to $\lambda_{k+B}$ when $\bar{T}_k(B)>\bar{T}_k(B-1)$ instead, because $\bar{T}_k(B+1)$ cannot be calculated without doing screening at $\lambda_{k+B+1}$. These two conditions should be close and thus this substitution should also be close to optimal. Combined with (9), the latter condition will approximately be:
 
 \begin{equation}
     (B-1)|\mathcal{S}_{k+B}|-\sum_{b=1}^{B-1}|\mathcal{S}_{k+b}|>p.
@@ -241,15 +241,15 @@ From previous example, we assume the average cost is a convex function of distan
 
 This updating condition is a greedy condition that only considers the cost up to the current $\lambda$ value. In practice, we cannot know about future $\lambda$ values so this is the most reasonable condition. In fact, it provides a robust strategy towards three most common scenarios. First, if the screening power stays high, meaning $\mathcal{S}_{k+b}$ is small for all $b$, then the left-hand-side of (10) will be small and thus at this point we will not update to further exploit the last update. Second, if the screening power has been high for a while but dropped suddenly, meaning $\mathcal{S}_{k+B}$ is large but $\mathcal{S}_{k+b}$ are mostly small for $b=1,2,...,B-1$, then the left-hand-side of (10) will be large and we will update the useless old reference to a new helpful one. Last, if the screening power drops dramatically right after the last update, meaning $\mathcal{S}_{k+b}$ are close to $p$ for $b=2,3,...,B$, then the left-hand-side of (10) will be approximately $p-|\mathcal{S}_1|<p$. We will not update although old reference is useless, because if we did, the new update would become useless quickly as well.
 
-This adaptive updating condition fills in the condition on line 11 in Algorithm 1 and forms a complete pathwise lasso algorithm with adaptive safe strong screening. 
+This adaptive updating condition fills in the condition on line 11 in Algorithm 1 and forms a complete pathwise lasso algorithm with adaptive hybrid screening. 
 
 
 \section{Extension to other lasso type problems}
 \label{sec:4}
 
-The structure of the adaptive safe strong rule is easily extendable to any lasso problems that have corresponding sequential strong rule and sequential safe rule. After an adaptive safe strong rule is built, we can automatically apply the adaptive update algorithm to form a pathwise algorithm with adaptive safe strong screening. We are going to derive the extensions to two lasso type problems and show these extensions improve computation efficiency.
+The structure of the adaptive hybrid rule is easily extendable to any lasso problems that have corresponding sequential strong rule and sequential safe rule. After an adaptive safe rule is built, we can automatically apply the adaptive strong rule and the adaptive update algorithm to form a pathwise algorithm with adaptive hybrid screening. We are going to derive the extensions to two lasso type problems and show these extensions improve computation efficiency.
 
-\subsection{Adaptive safe strong rule for sparse logistic regression}
+\subsection{Adaptive safe rule for sparse logistic regression}
 
 The sparse logistic regression model can be defined as:
 
@@ -308,9 +308,9 @@ Then $\hat{\beta}_j(\lambda_{k+b})=0$ if
         \end{equation}
 \end{theorem}
 
-When computing the adaptive Slores, $\{x_j^Ty\}_{j=1}^p$ needs to be computed only once, stored and reused for the whole solution path. $\{x_j^Tx_*\}_{j=1}^p$ can be reused unless $x_*$ changes. Other than those two terms, the only term that requires expensive $O(np)$ computation is $\{x_j^Tr(\lambda_k)\}_{j=1}^p$, which only needs to be computed at the time of each update. Thus algorithm 1 for adaptive safe strong rule can be done with Slores rule instead of EDPP rule to form Ada-SSR-Slores that does screening for sparse logistic regression model.
+When computing the adaptive Slores, $\{x_j^Ty\}_{j=1}^p$ needs to be computed only once, stored and reused for the whole solution path. $\{x_j^Tx_*\}_{j=1}^p$ can be reused unless $x_*$ changes. Other than those two terms, the only term that requires expensive $O(np)$ computation is $\{x_j^Tr(\lambda_k)\}_{j=1}^p$, which only needs to be computed at the time of each update. Thus algorithm 1 for adaptive hybrid rule can be done with Slores rule instead of EDPP rule to form Ada-SSR-Slores that does screening for sparse logistic regression model.
 
-\subsection{Adaptive safe strong rule for group lasso}
+\subsection{Adaptive safe rule for group lasso}
 
 The group lasso problem \citep{yuan2006model} can be defined as:
 
@@ -353,9 +353,9 @@ Similar to Adaptive EDPP rule, three expensive computations are $\{X_g^Ty\}_{g=1
 \section{Experiments}
 \label{sec:5}
 
-In this section conduct experiments solving lasso model on both simulated data sets and real data sets, to show our proposed adaptive safe strong rule screening method outperforms previous screening method such as SSR, SEDPP, HSSR and Slores. Active-set cycling in \ref{sec:active} is always used with all screening methods because it can be easily combined with any screening methods with no extra cost.
+In this section conduct experiments solving lasso model on both simulated data sets and real data sets, to show our proposed adaptive hybrid rule screening method outperforms previous screening method such as SSR, SEDPP, HSSR and Slores. Active-set cycling in \ref{sec:active} is always used with all screening methods because it can be easily combined with any screening methods with no extra cost.
 
-The adaptive safe strong rule screening is implemented in the \textbf{R} package \textbf{biglasso} and we will use this package for our experiment. Compared to traditional packages that solve lasso problem, such as \textbf{glmnet}, \textbf{biglasso} focuses on efficiently solving lasso problem with high-dimensional data sets that have a large number of features. First, it utilized the memory-mapping techniques that stores the data set on the disk and reads in only the part of the data necessary for model solving. Second, it applied screening rules to reduce both the computation cost and memory cost as we have discussed. These two features together help \textbf{biglasso} to outperform other packages. We will show that our new screening method will result in a new version of the package that shows significant improvement compared to previous version. 
+The adaptive hybrid rule screening is implemented in the \textbf{R} package \textbf{biglasso} and we will use this package for our experiment. Compared to traditional packages that solve lasso problem, such as \textbf{glmnet}, \textbf{biglasso} focuses on efficiently solving lasso problem with high-dimensional data sets that have a large number of features. First, it utilized the memory-mapping techniques that stores the data set on the disk and reads in only the part of the data necessary for model solving. Second, it applied screening rules to reduce both the computation cost and memory cost as we have discussed. These two features together help \textbf{biglasso} to outperform other packages. We will show that our new screening method will result in a new version of the package that shows significant improvement compared to previous version. 
 
 For all the following experiments, we will solve the lasso model along a path of $100$ $\lambda$-values with the maximum $\lambda_0=\max_j|x_j^Ty/n|$ determined by the data, the minimum $\lambda_K=0.05\lambda_0$ and the rest $\lambda$-values equally spaced between on log scale.
 
@@ -364,7 +364,7 @@ For all the following experiments, we will solve the lasso model along a path of
 
 \subsubsection{Lasso model}
 
-In this part, we will solve the standard lasso problem (1) with different screening methods: Active-set Cycling (AC) alone, SSR, SEDPP, HSSR and adaptive safe strong rule (ASSR). The safe rule used in ASSR will be adaptive EDPP rule. Note that AC is always incorporated with all other screening rules, so using AC alone can be considered as a baseline for this comparison.
+In this part, we will solve the standard lasso problem (1) with different screening methods: Active-set Cycling (AC) alone, SSR, SEDPP, HSSR and adaptive hybrid rule (AHR). The safe rule used in AHR will be adaptive EDPP rule. Note that AC is always incorporated with all other screening rules, so using AC alone can be considered as a baseline for this comparison.
 
 The data will be simulated from the model: $y=X\beta+0.1\epsilon$. $X$ and $\epsilon$ are sampled i.i.d from $N(0,1)$. $\beta$ will have $s$ randomly selected elements equally spaced between $[-\beta_{max},\beta_{max}]$ and the rest $p-s$ elements are zeros. Each setting is replicated $10$ times to calculate the average time cost. We consider the following cases:
 
@@ -381,15 +381,15 @@ The data will be simulated from the model: $y=X\beta+0.1\epsilon$. $X$ and $\eps
     \label{fig:5.1.1}
 \end{figure}
 
-Figure 2 shows the computation time (top row) and relative computation time compared to AC (bottom row) of solving lasso problem with different screening methods. The ASSR is uniformly the fastest under all settings. Most of the time it is 2-4 times faster than any other screening methods. It outperforms other methods especially when the data set is large (large $n$ or large $p$) or the active features are sparse among all features (small $s$). 
+Figure 2 shows the computation time (top row) and relative computation time compared to AC (bottom row) of solving lasso problem with different screening methods. The AHR is uniformly the fastest under all settings. Most of the time it is 2-4 times faster than any other screening methods. It outperforms other methods especially when the data set is large (large $n$ or large $p$) or the active features are sparse among all features (small $s$). 
 
-There are several atypical cases when ASSR's advantage over other methods is not as significant: (1) $p$ or $n$ is small. This corresponds a small data set and computation will be less challenging. (2) $\beta_{max}$ is close to zero. This means all the nonzero coefficients are close to zero and are hard to be distinguished from zero coefficients. This can cause problem for any statistical learning methods. (3) $s$ is large. In this case, the underlying model that generate the data set is not sparse in the sense that proportion of nonzero coefficients is not small. Lasso model would not be the optimal model to analyse such an data set.
+There are several atypical cases when AHR's advantage over other methods is not as significant: (1) $p$ or $n$ is small. This corresponds a small data set and computation will be less challenging. (2) $\beta_{max}$ is close to zero. This means all the nonzero coefficients are close to zero and are hard to be distinguished from zero coefficients. This can cause problem for any statistical learning methods. (3) $s$ is large. In this case, the underlying model that generate the data set is not sparse in the sense that proportion of nonzero coefficients is not small. Lasso model would not be the optimal model to analyse such an data set.
 
-We also tried varying other factors, for example, varying the correlation among features in $X$ or varying the sparsity with fixed signal strength. The ASSR also shows uniform advantage over other method when those factors vary in reasonable ranges.
+We also tried varying other factors, for example, varying the correlation among features in $X$ or varying the sparsity with fixed signal strength. The AHR also shows uniform advantage over other method when those factors vary in reasonable ranges.
 
 \subsubsection{Sparse logistic regression model}
 
-In this part, we will replicate the previous experiment, expect that now we will solve the sparse logistic regression model with the following screening methods: SSR, HSSR with Slores as the safe rule (HSlores), and ASSR with Slores as the safe rule (ASlores). SSR is implemented in all of the three screening methods so it will be considered as the baseline.
+In this part, we will replicate the previous experiment, expect that now we will solve the sparse logistic regression model with the following screening methods: SSR, HSSR with Slores as the safe rule (HSlores), and AHR with Slores as the safe rule (ASlores). SSR is implemented in all of the three screening methods so it will be considered as the baseline.
 
 The data will be simulated from the model: $y=\mathbf{1}\{X\beta+0.1\epsilon >0\}$. $X$ and $\epsilon$ are sampled i.i.d from $N(0,1)$. $\beta$ will have $s$ randomly selected elements equally spaced between $[-\beta_{max},\beta_{max}]$ and the rest $p-s$ elements are zeros. Each setting is replicated $10$ times to calculate the average time cost. We consider the same 4 cases we have considered in the previous experiment.
 
@@ -405,7 +405,7 @@ Figure 3 shows the computation time (top row) and relative computation time comp
 \subsection{Real data analysis}
 \label{sec:real-data}
 
-In previous sections, we used simulation to compare the screening methods under different scenario. In real world, data may be generated from different complicated models that cannot be covered by a simulation study, so in this section we are going to test these screening methods on some real data sets to make sure our comparison conclusion is representative in real world. Following the studies of \citep{wang2013lasso, xiang2016screening, zeng2017efficient}, we will test on the following data sets:
+In previous sections, we used simulation to compare the screening methods under different scenario. In real world, data may be generated from different complicated models that cannot be covered by a simulation study, so in this section we are going to test these screening methods on some real data sets to make sure our comparison conclusion is representative in real world. Following the studies of \citep{wang2013lasso, xiang2016screening, zeng2017efficient}, we will test the lasso screening methods on the following data sets:
 
 \begin{enumerate}
     \item \textbf{Breast cancer gene expression data
@@ -434,12 +434,12 @@ AC & 2.14 (0.03) & 6.82 (0.07) & 46.67 (0.13) & 59.20 (1.89) \\
 SSR & 1.34 (0.01) & 5.20 (0.01) & 25.34 (0.08) & 35.40 (0.44) \\
 SEDPP & 1.38 (0.01) & 8.40 (0.45) & 25.48 (0.05) & 53.69 (3.81) \\
 HSSR & 1.21 (0.01) & 3.44 (0.07) & 23.85 (0.06) & 31.05 (0.80) \\
-ASSR & \textbf{0.71 (0.01)} & \textbf{1.15 (0.02)} & \textbf{8.80 (0.03)} & \textbf{12.71 (1.05)} \\\hline
+AHR & \textbf{0.71 (0.01)} & \textbf{1.15 (0.02)} & \textbf{8.80 (0.03)} & \textbf{12.71 (1.05)} \\\hline
 \end{tabular}
 \caption{Average computing time in second (standard error) for solving the lasso model}
 \end{table}
 
-ASSR again outperforms other screening methods on all data sets, faster than the fastest of the rest by 70\% to 200\%. Also note that the performance of SEDPP varies a lot in MNIST and NYT data sets, where the response is randomly selected in each replication, suggesting that the speed of SEDPP is sensitive to the data. ASSR is built with SEDPP as the safe rule but does not have the problem of instability, because it can adaptively adjust itself according the performance of the safe rule.
+AHR again outperforms other screening methods on all data sets, faster than the fastest of the rest by 70\% to 200\%. Also note that the performance of SEDPP varies a lot in MNIST and NYT data sets, where the response is randomly selected in each replication, suggesting that the speed of SEDPP is sensitive to the data. AHR is built with SEDPP as the safe rule but does not have the problem of instability, because it can adaptively adjust itself according the performance of the safe rule.
 
 
 
@@ -452,12 +452,11 @@ ASSR again outperforms other screening methods on all data sets, faster than the
 \section{Conclusion}
 \label{sec:6}
 
-In this paper, we proposed the novel adaptive safe strong screening framework for efficient lasso type problem optimization over the solution path. The key idea is cleverly reusing the reference for screening along the path until updating to a new reference is beneficial for computation cost.  We developed three instances in this framework: Ada-SSR-EDPP, Ada-SSR-Slores and Ada-SSR EDPP for group lasso, for 3 different types of lasso problems. We tested the first two in extensive numeric experiments on both simulated data and real data, including a ultra big data that does not fit into the memory. Our proposed rules outperformed other state-of-the-art screening methods uniformly, especially in the most challenging scenarios. 
+In this paper, we proposed the novel adaptive hybrid screening framework for efficient lasso type problem optimization over the solution path. The key idea is cleverly reusing the reference for screening along the path until updating to a new reference is beneficial for computation cost.  We developed three instances in this framework: Ada-SSR-EDPP, Ada-SSR-Slores and Ada-SSR EDPP for group lasso, for 3 different types of lasso problems. We tested the first two in extensive numeric experiments on both simulated data and real data, including a ultra big data that does not fit into the memory. Our proposed rules outperformed other state-of-the-art screening methods uniformly, especially in the most challenging scenarios. 
 
 Ada-SSR-EDPP and Ada-SSR-Slores have been implemented in  publicly accessible \textbf{R} packages \textbf{biglasso}\citep{zeng2017biglasso}, which was used to carry out the numeric experiments.
 
-Our adaptive safe strong screening framework also has great flexibility for extensions. It can substitute coordinate descent with any other faster lasso problem optimizer, SSR with any other stronger strong rules and the adaptive updating algorithm with any other cleverer algorithm. Most importantly, most sequential safe rules can be modified as adaptive safe rules and fit into our framework. This lead to several future extensions. First, if a stronger safe rule is developed, our framework can better exploit its power and lead to an even faster algorithm. Second, there are still many lasso type problems that do not have corresponding sequential safe rules, such as sparse Cox regression, sparse Poisson regression and sparse SVM. Once they are developed, they can be fit into our framework to produce efficient algorithm for other types of lasso problem.
+Our adaptive hybrid screening framework also has great flexibility for extensions. It can substitute coordinate descent with any other faster lasso problem optimizer, SSR with any other stronger strong rules and the adaptive updating algorithm with any other cleverer algorithm. Most importantly, most sequential safe rules can be modified as adaptive safe rules and fit into our framework. This lead to several future extensions. First, if a stronger safe rule is developed, our framework can better exploit its power and lead to an even faster algorithm. Second, there are still many lasso type problems that do not have corresponding sequential safe rules, such as sparse Cox regression, sparse Poisson regression and sparse SVM. Once they are developed, they can be fit into our framework to produce efficient algorithm for other types of lasso problem.
 
-\bibliography{ref}
 
-\end{document}
+
