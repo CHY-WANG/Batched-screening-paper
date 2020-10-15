@@ -136,15 +136,15 @@ From the SEDPP rule (6) in Theorem 2.2, we can do screening at $\lambda_{k+1}$ g
 Similar to SEDPP, the Adaptive EDPP rule can be stated in the following theorem:
 
 \begin{theorem}[Adaptive EDPP]
-    For the lasso problem (1), let $\lambda_0:=\max_j|x_j^Ty/n|$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$. Under condition (2)
+    For the lasso problem (1), let $\lambda_0:=\max_j|x_j^Ty/n|$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$ and the last updated reference point is $\lambda_k$. Under condition (2)
     \begin{enumerate}
-        \item For any $k=1,2,...,K-1$, given $\hat{\beta}(\lambda_k)$, $r(\lambda_k)$ and $\hat{y}(\lambda_k):=X\hat{\beta}(\lambda_k)$, then for some update point $k+B$ and any $b$ s.t. $k<k+b\leq k+B\leq K$, $\hat{\beta}_j(\lambda_{k+b})=0$ if
+        \item For any $k=1,2,...,K-1$, given $\hat{\beta}(\lambda_k)$, $r(\lambda_k)$ and $\hat{y}(\lambda_k):=X\hat{\beta}(\lambda_k)$, then for some next update point $k+B$ and any $b$ s.t. $k<k+b\leq k+B\leq K$, $\hat{\beta}_j(\lambda_{k+b})=0$ if
         \begin{equation}
             \begin{split}
                 &\left|2\lambda_{k+b}x_j^Tr(\lambda_k)+(\lambda_k-\lambda_{k+b})\left( x_j^Ty-\frac{y^T\hat{y}(\lambda_k)x_j^T\hat{y}(\lambda_k)}{||\hat{y}(\lambda_k)||_2^2}\right)\right|\\&<2n\lambda_k\lambda_{k+b}-(\lambda_k-\lambda_{k+b})\sqrt{n||y||_2^2-\frac{n(y^T\hat{y}(\lambda_k))^2}{||\hat{y}(\lambda_k)||_2^2}}
             \end{split}
         \end{equation}
-        \item For k=0, i.e., $\lambda_k=\lambda_0$, then for some update point $k+B$ and any $b$ s.t. $0<b\leq B\leq K$, $\hat{\beta}_j(\lambda_{k+b})=0$ if
+        \item For k=0, i.e., $\lambda_k=\lambda_0$, then for some next update point $k+B$ and any $b$ s.t. $0<b\leq B\leq K$, $\hat{\beta}_j(\lambda_{k+b})=0$ if
         \begin{equation}
         |(\lambda_0+\lambda_b)x_j^Ty-(\lambda_0-\lambda_b)sign(x_*^Ty)\lambda_0x_j^Tx_*|<2n\lambda_0\lambda_b-(\lambda_0-\lambda_b)\sqrt{n||y||_2^2-n^2\lambda_0^2}.
     \end{equation}
@@ -389,7 +389,7 @@ Figure 2 shows the computation time (top row) and relative computation time comp
 
 There are several atypical cases when AHR's advantage over other methods is not as significant: (1) $p$ or $n$ is small. This corresponds a small data set and computation will be less challenging. (2) $\beta_{max}$ is close to zero. This means all the nonzero coefficients are close to zero and are hard to be distinguished from zero coefficients. This can cause problem for any statistical learning methods. (3) $s$ is large. In this case, the underlying model that generate the data set is not sparse in the sense that proportion of nonzero coefficients is not small. Lasso model would not be the optimal model to analyse such an data set.
 
-We also tried varying other factors, for example, varying the correlation among features in $X$ or varying the sparsity with fixed signal strength. The AHR also shows uniform advantage over other method when those factors vary in reasonable ranges.
+We also tried varying other factors, for example, varying the correlation among features in $X$, varying the sparsity with fixed signal strength or varying the minimum $\lambda$-value $\lambda_K$. The AHR also shows uniform advantage over other method when those factors vary in reasonable ranges.
 
 \subsubsection{Sparse logistic regression model}
 
@@ -409,7 +409,7 @@ Figure 3 shows the computation time (top row) and relative computation time comp
 \subsection{Real data analysis}
 \label{sec:real-data}
 
-In previous sections, we used simulation to compare the screening methods under different scenario. In real world, data may be generated from different complicated models that cannot be covered by a simulation study, so in this section we are going to test these screening methods on some real data sets to make sure our comparison conclusion is representative in real world. Following the studies of \citep{wang2013lasso, xiang2016screening, zeng2017efficient}, we will test the lasso screening methods on the following data sets:
+In previous sections, we used simulation to compare the screening methods under different scenario. In real world, data may be generated from different complicated models that cannot be covered by a simulation study, so in this section we are going to test the screening methods for lasso model on some real data sets to make sure our comparison conclusion is representative in real world. Following the studies of \citep{wang2013lasso, xiang2016screening, zeng2017efficient}, we will test the lasso screening methods on the following data sets:
 
 \begin{enumerate}
     \item \textbf{Breast cancer gene expression data
@@ -425,7 +425,7 @@ polymorphisms (SNPs) collected from $n=313$ human hearts. The response is the lo
 \end{enumerate}
 
 
-For 1 and 3, we replicate the experiment 10 times to take the average. For 2 and 4, since in each experiment the response is randomly selected, we replicate the experiment 50 times to get an accurate estimate. The following table compares the average computation time for different screening methods in these data sets.
+For 1 and 3, we replicate the experiment 10 times to take the average. For 2 and 4, since in each experiment the response is randomly selected, we replicate the experiment 50 times to get an accurate estimate. Table 1 compares the average computation time for different screening methods in these data sets.
 
 \begin{table}[H]
 \centering
@@ -448,6 +448,24 @@ AHR again outperforms other screening methods on all data sets, faster than the 
 
 
 \subsection{Big data performance}
+
+Ultra high dimensional big data that is too large to be fit into the memory is the real challenge and is the place where the help of a good screening method is wanted most. We test the screening methods on a data from a genome-wide association study on 1,080 subjects with heart conditions. We want to identify genetic factors that are associated with some heart condition severity measurements. After imputing and filtering, there are $p=11,830,470$ SNP measurements used as the features. The size of the file storing the feature matrix is 96G and we conduct the test on a machine with 32G RAM.
+
+For the lasso model, we choose the Left ventricular ejection fraction (LVEF) as the response. It measures the proportion of blood being pumped out of the left ventricle of the heart (the main pumping chamber) with each contraction. Lower value means severer heart failure. $n=973$ out of 1,080 subjects have this measurement and they will be considered as the sample for this analysis. The experiment is replicated 5 times to take the average, shown in the Table 2.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{l|l|l|l|l|l}
+\hline
+
+Screening method & AC\,\,\,\,\,\,\,\,\,    & SSR\,\,\,\,\,\,   & SEDPP & HSSR\,\,\,  & AHR\,\,\,\,\,\,  \\
+\hline
+Time & 256.4 & 79.2 & 79.3 & 84.1 & 54.0\\
+Standard error & 0.59 & 0.10 & 0.03 & 0.03 & 0.22
+ \\\hline
+\end{tabular}
+\caption{Average computing time in minute and standard error for solving the lasso model on big data}
+\end{table}
 
 \begin{itemize}
     \item Analyse and profile different methods. Compare them in big data case ?
