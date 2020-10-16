@@ -449,7 +449,7 @@ AHR again outperforms other screening methods on all data sets, faster than the 
 
 \subsection{Big data performance}
 
-Ultra high dimensional big data that is too large to be fit into the memory is the real challenge and is the place where the help of a good screening method is wanted most. We test the screening methods on a data from a genome-wide association study on 1,080 subjects with heart conditions. We want to identify genetic factors that are associated with some heart condition severity measurements. After imputing and filtering, there are $p=11,830,470$ SNP measurements used as the features. The size of the file storing the feature matrix is 96G and we conduct the test on a machine with 32G RAM.
+Ultra high dimensional big data that is too large to be fit into the memory is the real challenge and is the place where the help of a good screening method is wanted most. We test the screening methods on a data from a genome-wide association study on 1,080 subjects with heart conditions. We want to identify genetic factors that are associated with some heart condition severity measurements. After imputing and filtering, there are $p=11,830,470$ SNP measurements used as the features. The size of the file storing the feature matrix is 96G and we conduct the test on a machine with 32G RAM. We choose a larger $\lambda_{\min} =0.5\lambda_{\max}$ to avoid having more features selected than the number of observations, where the solution becomes not unique.
 
 For the lasso model, we choose the Left ventricular ejection fraction (LVEF) as the response. It measures the proportion of blood being pumped out of the left ventricle of the heart (the main pumping chamber) with each contraction. Lower value means severer heart failure. $n=973$ out of 1,080 subjects have this measurement and they will be considered as the sample for this analysis. The experiment is replicated 5 times to take the average, shown in the Table 2.
 
@@ -460,16 +460,30 @@ For the lasso model, we choose the Left ventricular ejection fraction (LVEF) as 
 
 Screening method & AC\,\,\,\,\,\,\,\,\,    & SSR\,\,\,\,\,\,   & SEDPP & HSSR\,\,\,  & AHR\,\,\,\,\,\,  \\
 \hline
-Time & 256.4 & 79.2 & 79.3 & 84.1 & 54.0\\
-Standard error & 0.59 & 0.10 & 0.03 & 0.03 & 0.22
+Time & 183.6 & 78.6 & 78.6 & 84.9 & 13.6\\
+Standard error & 0.43 & 0.65 & 0.20 & 0.48 & 0.15
  \\\hline
 \end{tabular}
 \caption{Average computing time in minute and standard error for solving the lasso model on big data}
 \end{table}
 
-\begin{itemize}
-    \item Analyse and profile different methods. Compare them in big data case ?
-\end{itemize}
+For the sparse logistic model, we choose the New York Heart Association (NYHA) Functional Classification as the response. It classifies patients by how much they are limited during physical activity. The classes range from 1 to 4 so we combine class 1 and 2 as the negative class with no or slight limitation of physical activity and class 3 and 4 as the positive class with substantial limitation. $n=1008$ out of 1,080 subjects have this measurement and they will be considered as the sample for this analysis. The experiment is replicated 5 times to take the average, shown in the Table 3.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{l|l|l|l}
+\hline
+
+Screening method & SSR\,\,\,\,\,\,\,\,\,    & HSlores\,\,\,\,\,\,   & ASlores   \\
+\hline
+Time & 82.7 & 107.5 & 51.7 \\
+Standard error & 0.10 & 0.67 & 0.17 
+ \\\hline
+\end{tabular}
+\caption{Average computing time in minute and standard error for solving the sparse logistic model on big data}
+\end{table}
+
+For both the lasso model and the sparse logistic model, the purposed adaptive hybrid methods outperforms other methods with great reduction in computation time. On the lasso model, the adaptive hybrid method achieves 6 times speedup.
 
 \section{Conclusion}
 \label{sec:6}
