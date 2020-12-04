@@ -1,4 +1,7 @@
-\pb{Needs an abstract}
+
+\begin{abstract}
+    Lasso type models are popular in statistics and machine learning, especially for variable selection in high-dimensional data. Typical practice is to tune the size of lasso penalty along a path of values. Due to modern data collection techniques, researchers need to analyse ultra high-dimension data with millions of features, which brings a great need for an efficient lasso optimization algorithm. Feature screening techniques have proven to be powerful for this need, because they can discard features and lead to a model with much less features. In this paper, we develop an adaptive hybrid screening framework where screening is carried out adpatively along the path of tuning parameter values. It reuses previous solutions in the path and avoids unhelpful heavy computations. It is a flexible framework that can be easily extended to different types of lasso models. The Ada-SSR-EDPP for the standard lasso model and the Ada-SSR-Slores for the sparse logistic model are shown as examples. We perform simulation study and real data study in a wide range of scenarios and the adaptive hybrid methods outperform other state-of-the-art method significantly and uniformly, with the greatest speedup in the most challenging scenarios.
+\end{abstract}
 
 \section{Introduction}
 
@@ -10,15 +13,11 @@ where $y$ is an $n\times 1$ vector of responses, $X=(x_1,x_2,...,x_p)$ is an $n\
 
 The lasso model has several attractive properties compared to least squares regression, including increased stability of estimation, increased prediction accuracy, and automatic variable selection arising from the fact that it yields sparse estimates of $\beta$.  As a result, it is widely applied in different fields, such as gene expression data analysis, image recognition and text mining, and has been extended in several ways, such as group lasso \citep{yuan2006model}, elastic net \citep{zou2005regularization} and sparse generalized linear models. Because of its wide popularity, solving the lasso efficiently is an important topic in statistics and machine learning.
 
-\pb{I think we need to introduce the point of the paper here; do we need this paragraph?  Because the optimal value of $\lambda$ is not known in advance, typical practice is to solve for $\beta$ along a sequence of values of the tuning parameter $\lambda$, known as the solution path.  Pathwise algorithms can be efficiently implemented to address this challenge, by using the solution at a previous $\lambda$ value as a ``warm start'' for the next value of $\lambda$.  In particular, the pathwise coordinate descent algorithm \citep{friedman2007pathwise}, which optimizes $\beta(\lambda)$ one element at a time with the remaining coordinates held fixed, has been shown to outperform other lasso algorithms such as LARS \citep[least angle regression, ][]{efron2004least}, especially in high dimensional settings where $p$ is large. In sparse settings, it scales up very well with a computational cost of approximately $O(np)$. }
-
-\pb{How about just: While efficiently algorithms have been developed \citep{friedman2007pathwise}, modern data collection \ldots}
-
-Modern data collection and storage techniques allow researchers to measure an increasingly large number of features, which introduce additional computational challenges. In particular, it may not be possible to store the feature matrix, which can require many GBs of memory to store, in memory. One can resolve this problem by using a memory mapping package such as \textbf{bigmemory}, which allows us to store the feature matrix on disk and read it portions of it as needed; however, this results in frequent reading from disk, which is extremely slow compared to other parts of the algorithm and becomes a bottleneck with respect to the computational burden of fitting lasso models on very large data sets.
+Because the optimal value of $\lambda$ is not known in advance, typical practice is to solve for $\beta$ along a sequence of values of the tuning parameter $\lambda$, known as the solution path. While efficiently algorithms have been developed \citep{friedman2007pathwise} for the solution path, modern data collection and storage techniques allow researchers to measure an increasingly large number of features, which introduce additional computational challenges. In particular, it may not be possible to store the feature matrix, which can require many GBs of memory to store, in memory. One can resolve this problem by using a memory mapping package such as \textbf{bigmemory}, which allows us to store the feature matrix on disk and read it portions of it as needed; however, this results in frequent reading from disk, which is extremely slow compared to other parts of the algorithm and becomes a bottleneck with respect to the computational burden of fitting lasso models on very large data sets.
 
 One promising technique to address this challenge is feature screening. The lasso model solution is sparse in the sense that most coefficients will be exactly zero; for these ``inactive'' coefficients we do not need their associated features.  In theory, if we knew which coefficients were nonzero at each value of $\lambda$, we could read into memory only those features and leave the remaining features on disk. In reality, we cannot know this prior to fitting the model -- however, through the clever use of feature screening rules, we can greatly reduce the number of times inactive features are read into memory, thereby minimizing the computational burden. There are many screening techniques where the solution obtained after screening will still be the global optimum given it exists, and in this paper we will only focus on this type of screening. In what follows, we refer to features left on disk as ``discarded'' features, although it is worth clarifying that this is not a permanent decision.  In particular, a feature can be discarded at one value of $\lambda$ but included in the list of potentially active features at other values of $\lambda$.
 
-There are two important categories of feature screening rules: ``strong'' rules \citep{tibshirani2011regression, qian2019fast}, which occasionally incorrectly discard some active features, and ``safe'' rules \citep{ghaoui2010safe,wang2013lasso,xiang2012fast, xiang2011learning}, which are guaranteed never to do so.  As one might expect, strong rules tend to be easier to calculate; however, because mistakes are possible, one must add a post-convergence check to ensure that no features were incorrectly discarded. This check is not necessary with safe rules. However, safe rules are considerably less powerful at discarding features than strong rules. More recently, hybrid approaches \pb{update this citation} \citep{zeng2017efficient} combining the two types of rules have been shown to be more efficient than either type of rule alone.
+There are two important categories of feature screening rules: ``strong'' rules \citep{tibshirani2011regression, qian2019fast}, which occasionally incorrectly discard some active features, and ``safe'' rules \citep{ghaoui2010safe,wang2013lasso,xiang2012fast, xiang2011learning}, which are guaranteed never to do so.  As one might expect, strong rules tend to be easier to calculate; however, because mistakes are possible, one must add a post-convergence check to ensure that no features were incorrectly discarded. This check is not necessary with safe rules. However, safe rules are considerably less powerful at discarding features than strong rules. More recently, hybrid approaches \citep{zeng2021hybrid} combining the two types of rules have been shown to be more efficient than either type of rule alone.
 
 Safe screening rules can be implemented in one of two ways. Sequential rules are recalculated at each $\lambda$ value along the path using the previous solution, so they require heavy computation but are relatively powerful. One-step rules are only calculated once, at the beginning of the path. As a result, they require far less computational burden but they lose efficacy as the thus are faster but they cannot remain powerful along the path for long because they don't utilize previous solution.
 
@@ -81,7 +80,7 @@ A nice property about SSR with post-convergence check is the quantity $x_j^Tr(\l
 
 Compared to strong rules, safe rules can discard features safely. Those discarded features are guaranteed to have zero coefficients and we do not need an addition check to validate them. We will mainly focus on enhanced dual polytope projections (EDPP) rules\citep{wang2013lasso}, because they outperform other current safe rules and are easy to incorporate in our method.
 
-The EDPP rules are derived from the dual formulation of the lasso problem and provide a bound for the residual vector $r(\lambda)$. Then using the KKT conditions, some features can be guaranteed to have zero coefficients and be discarded safely. Two forms of the EDPP rule, basic EDPP (BEDPP) and sequential EDPP (SEDPP)\citep{wang2013lasso}, were proposed and under the standardization (2) can be simplified in the following theorems\citep{zeng2017efficient}:
+The EDPP rules are derived from the dual formulation of the lasso problem and provide a bound for the residual vector $r(\lambda)$. Then using the KKT conditions, some features can be guaranteed to have zero coefficients and be discarded safely. Two forms of the EDPP rule, basic EDPP (BEDPP) and sequential EDPP (SEDPP)\citep{wang2013lasso}, were proposed and under the standardization (2) can be simplified in the following theorems\citep{zeng2021hybrid}:
 
 \begin{theorem}[BEDPP]
     For the lasso problem (1), let $\lambda_0:=\max_j|x_j^Ty/n|$ and $x_*=argmax_{x_j}|x_j^Ty/n|$. Under (2) and for any $\lambda\in(0,\lambda_0]$, we have $\hat{\beta}_j(\lambda)=0$ if
@@ -111,7 +110,7 @@ BEDPP is much faster, but at each $\lambda_k$, it is bounding $r(\lambda_k)$ usi
 
 \subsection{Hybrid safe-strong rules}
 
-The hybrid safe-strong rules (HSSR) \citep{zeng2017efficient} was proposed to combine SSR with any member of safe rules to take advantage of both. More specifically, it recommended  combining SSR with BEDPP rule, which showed best efficiency in experiments. This algorithm discards features that are discarded by either SSR or BEDPP rule. Then, when doing post-convergence check, it only checks features that are discarded by SSR but not discarded by BEDPP rule, instead of all features that are discarded by SSR.
+The hybrid safe-strong rules (HSSR) \citep{zeng2021hybrid} was proposed to combine SSR with any member of safe rules to take advantage of both. More specifically, it recommended  combining SSR with BEDPP rule, which showed best efficiency in experiments. This algorithm discards features that are discarded by either SSR or BEDPP rule. Then, when doing post-convergence check, it only checks features that are discarded by SSR but not discarded by BEDPP rule, instead of all features that are discarded by SSR.
 
 BEDPP rule is fast because heavy computation only occurs at the first step. SSR only requires heavy computation at the post-convergence check step. Now the set of features that need a post-convergence check is narrowed down by BEDPP rule and thus the cost of the post convergence check is reduced directly. Combining this two rules lead to a hybrid rule that outperforms using any screening rules alone in experiments.
 
@@ -158,7 +157,7 @@ may not be any beneficial after that. Compared to sequential methods like SEDPP,
 
 \subsection{Adaptive hybrid rule on top of adaptive safe rule}
 
-Because HSSR \citep{zeng2017efficient} have been shown to provide significant speedup compared to safe rules alone, we should also consider adding a strong rule screening after the adaptive EDPP rule screening. The SSR and adpative EDPP rule combined will form our adaptive hybrid rule: Ada-SSR-EDPP.
+Because HSSR \citep{zeng2021hybrid} have been shown to provide significant speedup compared to safe rules alone, we should also consider adding a strong rule screening after the adaptive EDPP rule screening. The SSR and adpative EDPP rule combined will form our adaptive hybrid rule: Ada-SSR-EDPP.
 
 This combination is not trivial. For ordinary SSR, the quantities $x_j^Tr(\lambda_k)$ used in (4) is already computed in the previous post-convergence check in (2). However, combined with safe rules, previous post-convergence check only needs to check features that are not discarded at the previous $\lambda$-value. Thus, for features that are discarded at the previous $\lambda$-value but not at the current $\lambda$-value, their corresponding $x_j^Tr(\lambda_k)$ have not been computed yet and thus cannot be used without additional cost. Similar to the idea of BASIL \citep{qian2019fast}, we can also do the strong rule screening adaptively by using the latest $x_j^Tr(\lambda_k)$ available, which is computed by adaptive EDPP rule at the latest update, to reduce the number of required computations.
 
@@ -260,7 +259,7 @@ The sparse logistic regression model can be defined as:
 \begin{equation}
     \hat{\beta}(\lambda)=\underset{(\beta,\beta_0)\in \mathbb{R}^p\times\mathbb{R}^1}{\mathrm{argmin}}-\frac{1}{n}\sum_{i=1}^n\{y_i\log\pi_i(\beta)+(1-y_i)\log(1-\pi_i(\beta))\}+\lambda||\beta||_1,
 \end{equation}
-where $\pi(\beta)=\{\pi_i(\beta)\}_{i=1}^n=\{p(y_i=1|x_{i1},x_{i2},...,x_{ip})\}_{i=1}^n=\{e^{\eta_i(\beta)}/(1+e^{\eta_i(\beta)})\}_{i=1}^n$ is the predicted value vector and $\eta(\beta)=X\beta$ is the linear function. $X$ are still the $n\times p$ standardized feature matrix but in this model the $y\in\{0,1\}^n$ is an unstandardized binary response vector. $\beta$ is still the $p\times1$ coefficient vector but we also need a $\beta_0$ as the intercept.
+where $\pi(\beta)=\{\pi_i(\beta)\}_{i=1}^n=\{p(y_i=1|x_{i1},x_{i2},...,x_{ip})\}_{i=1}^n=\{e^{\eta_i(\beta)}/(1+e^{\eta_i(\beta)})\}_{i=1}^n$ is the predicted value vector and $\eta(\beta)=X\beta+\beta_0\mathbf{1}$ is the linear function. $X$ are still the $n\times p$ standardized feature matrix but in this model the $y\in\{0,1\}^n$ is an unstandardized binary response vector. $\beta$ is still the $p\times1$ coefficient vector but we also need a $\beta_0$ as the intercept.
 
 We can use SSR to do the strong rule screening with a small change according to the KKT condition. The residual vector now is $r(\lambda_k)=y-\pi(\hat{\beta}(\lambda_k))$. Then the SSR discards the $j$-th feature at $\lambda_{k+1}$ if (4) holds.
 
@@ -319,7 +318,7 @@ When computing the adaptive Slores, $\{x_j^Ty\}_{j=1}^p$ needs to be computed on
 The group lasso problem \citep{yuan2006model} can be defined as:
 
 \begin{equation}
-    \hat{\beta}(\lambda) = \underset{\beta\in \mathbb{R}^p}{\mathrm{argmin}}\frac{1}{2n}\bigg|\bigg|y-\sum_{g=1}^GX_g\beta_g\bigg|\bigg|_2^2+\lambda\sum_{g=1}^G\sqrt{p_g}||\beta_g||_1,
+    \hat{\beta}(\lambda) = \underset{\beta\in \mathbb{R}^p}{\mathrm{argmin}}\frac{1}{2n}\bigg|\bigg|y-\sum_{g=1}^GX_g\beta_g\bigg|\bigg|_2^2+\lambda\sum_{g=1}^G\sqrt{p_g}||\beta_g||_2,
 \end{equation}
 where $\beta=(\beta_1^T,...,\beta_G^T)^T$, $X_g$ is a $n\times p_g$ sub-matrix consisting of columns of $X$ corresponding to features in group $g$, $g=1,2,...,G$. Besides standardization in (2), we apply an addition level of standardization at the group level\citep{breheny2015group}:
 
@@ -368,48 +367,63 @@ For all the following experiments, we will solve the lasso model along a path of
 
 \subsubsection{Lasso model}
 
-In this part, we will solve the standard lasso problem (1) with different screening methods: Active-set Cycling (AC) alone, SSR, SEDPP, HSSR and adaptive hybrid rule (AHR). The safe rule used in AHR will be adaptive EDPP rule. Note that AC is always incorporated with all other screening rules, so using AC alone can be considered as a baseline for this comparison.
+In this part, we will solve the standard lasso problem (1) with different screening methods: Active-set Cycling (AC) alone, SSR, SEDPP, HSSR and adaptive hybrid rule (AHR). The AHR is Ada-SSR-EDPP which uses EDPP as the safe rule. Note that AC is always incorporated with all other screening rules, so using AC alone can be considered as a baseline for this comparison.
 
-The data will be simulated from the model: $y=X\beta+0.1\epsilon$. $X$ and $\epsilon$ are sampled i.i.d from $N(0,1)$. $\beta$ will have $s$ randomly selected elements equally spaced between $[-\beta_{max},\beta_{max}]$ and the rest $p-s$ elements are zeros. Each setting is replicated $10$ times to calculate the average time cost. We consider the following cases:
+The data will be simulated from the model: $y=X\beta+0.1\epsilon$. $X$ and $\epsilon$ are sampled i.i.d from $N(0,1)$. $\beta$ will have $s$ randomly selected elements equally spaced between $[-\beta_{max},\beta_{max}]$ and the rest $p-s$ elements are zeros. The lasso model is solved along a grid of $L$ $\lambda$-values equally spaced on the log scale between $[\lambda_{\max},\lambda_{\min}]$. Each setting is replicated $10$ times to calculate the average time cost. By default we set $p=10,000$, $n=1,000$, $s=20$, $\beta_{max}=1$, $L=100$, $\lambda_{\min}/\lambda_{\max}=0.05$. We consider the following cases where one of the variables above is varying at a time:
 
 \begin{enumerate}
-    \item \textbf{Varying number of features $\mathbf{p}$:} we fix $n=1,000$, $s=20$, $\beta_{max}=1$ and vary $p$ from $1,000$ to $100,000$.
-    \item \textbf{Varying sample size $\mathbf{n}$:} we fix $p=10,000$, $s=20$, $\beta_{max}=1$ and vary $n$ from $200$ to $10,000$.
-    \item \textbf{Varying signal strength $\mathbf{\beta_{max}}$:} we fix $p=10,000$, $n=1,000$, $s=20$ and vary $\beta_{max}$ from $0.05$ to $1$.
-    \item \textbf{Varying sparsity $\mathbf{s}$:} we fix $p=10,000$, $n=1,000$, total signal size $\beta_{max}\times s=20$ and vary $s$ from $10$ to $300$.
+    \item \textbf{Varying number of features:} $p$ from $1,000$ to $100,000$.
+    \item \textbf{Varying sample size:} $n$ from $200$ to $10,000$.
+    \item \textbf{Varying signal strength:} $\beta_{max}$ from $0.05$ to $1$.
+    \item \textbf{Varying sparsity:} $s$ from $10$ to $300$ while controlling total signal size $\beta_{max}\times s=20$.
+    \item \textbf{Varying number of grid points:}  $L$ from $20$ to $1000$.
+    \item \textbf{Varying range of grid:}  $\lambda_{\min}/\lambda_{\max}$ from $0.5$ to $0.002$.
+    \item \textbf{Varying number of grid points $L$ with fixed spacing:} $L$ from $20$ to $1000$ while controlling $\lambda_{\min}/\lambda_{\max}$ so that the spacing of the $\lambda$-values on the log scale is the same.
 \end{enumerate}
 
 \begin{figure}[h]
     \centering
-    \includegraphics[scale = 0.59]{plots/gaus1.pdf}    \caption{Comparing speed of screening methods for lasso model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to AC. First column: varying number of features $p$. Second column: varying sample size $n$. Third column: varying signal strength $\beta_{max}$. Fourth column: varying sparsity $s$.}
-    \label{fig:5.1.1}
+    \includegraphics[scale = 0.59]{plots/511.pdf}    \caption{Comparing speed of screening methods for lasso model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to AC. First column: varying number of features $p$. Second column: varying sample size $n$. Third column: varying signal strength $\beta_{max}$. Fourth column: varying sparsity $s$.}
+    \label{fig:5.1.1a}
 \end{figure}
 
-Figure 2 shows the computation time (top row) and relative computation time compared to AC (bottom row) of solving lasso problem with different screening methods. The AHR is uniformly the fastest under all settings. Most of the time it is 2-4 times faster than any other screening methods. It outperforms other methods especially when the data set is large (large $n$ or large $p$) or the active features are sparse among all features (small $s$). 
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale = 0.59]{plots/511b.pdf}    \caption{Comparing speed of screening methods for lasso model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to AC. First column: Varying number of grid points $L$. Second column: Varying range of grid $\lambda_{\min}/\lambda_{\max}$. Third column: Varying number of grid points $L$ with fixed spacing.}
+    \label{fig:5.1.1b}
+\end{figure}
 
-There are several atypical cases when AHR's advantage over other methods is not as significant: (1) $p$ or $n$ is small. This corresponds a small data set and computation will be less challenging. (2) $\beta_{max}$ is close to zero. This means all the nonzero coefficients are close to zero and are hard to be distinguished from zero coefficients. This can cause problem for any statistical learning methods. (3) $s$ is large. In this case, the underlying model that generate the data set is not sparse in the sense that proportion of nonzero coefficients is not small. Lasso model would not be the optimal model to analyse such an data set.
+Figure 2 and Figure 3 shows the computation time (top row) and relative computation time compared to AC (bottom row) of solving lasso problem with different screening methods. The AHR is uniformly the fastest under all settings. Most of the time it is 2-8 times faster than any other screening methods. It outperforms other methods especially when the data set is large (large $n$ or large $p$), the active features are sparse among all features (small $s$) or the grid of $\lambda$-value is fine (large $L$ or $\lambda_{\min}/\lambda_{\max}$). 
+
+There are several atypical cases when AHR's advantage over other methods is not as significant: (1) $p$ or $n$ is small. This corresponds a small data set and computation will be less challenging. (2) $\beta_{max}$ is close to zero. This means all the nonzero coefficients are close to zero and are hard to be distinguished from zero coefficients. This can cause problem for any statistical learning methods. (3) $s$ is large. In this case, the underlying model that generate the data set is not sparse in the sense that proportion of nonzero coefficients is not small. Lasso model would not be the optimal model to analyse such an data set. (4) $L$ is small. In this case, only a coarse grid of $\lambda$-values are considered. The $\lambda$-value selected in this case may be far from optimal.
 
 We also tried varying other factors, for example, varying the correlation among features in $X$, varying the sparsity with fixed signal strength or varying the minimum $\lambda$-value $\lambda_K$. The AHR also shows uniform advantage over other method when those factors vary in reasonable ranges.
 
 \subsubsection{Sparse logistic regression model}
 
-In this part, we will replicate the previous experiment, expect that now we will solve the sparse logistic regression model with the following screening methods: SSR, HSSR with Slores as the safe rule (HSlores), and AHR with Slores as the safe rule (ASlores). SSR is implemented in all of the three screening methods so it will be considered as the baseline.
+In this part, we will replicate the previous experiment, expect that now we will solve the sparse logistic regression model with the following screening methods: SSR, HSSR with Slores as the safe rule (HSlores), and the adaptive method Ada-SSR-Slores with Slores as the safe rule (ASlores). SSR is implemented in all of the three screening methods so it will be considered as the baseline.
 
-The data will be simulated from the model: $y=\mathbf{1}\{X\beta+0.1\epsilon >0\}$. $X$ and $\epsilon$ are sampled i.i.d from $N(0,1)$. $\beta$ will have $s$ randomly selected elements equally spaced between $[-\beta_{max},\beta_{max}]$ and the rest $p-s$ elements are zeros. Each setting is replicated $10$ times to calculate the average time cost. We consider the same 4 cases we have considered in the previous experiment.
+The data will be simulated from the model: $y=\mathbf{1}\{X\beta+0.1\epsilon >0\}$. $X$ and $\epsilon$ are sampled i.i.d from $N(0,1)$. $\beta$ will have $s$ randomly selected elements equally spaced between $[-\beta_{max},\beta_{max}]$ and the rest $p-s$ elements are zeros. Each setting is replicated $10$ times to calculate the average time cost. We consider the same 7 cases we have considered in the previous experiment.
 
-\begin{figure}[H]
+\begin{figure}[h]
     \centering
     \includegraphics[scale = 0.59]{plots/bin1.pdf}    \caption{Comparing speed of screening methods for sparse logistic regression model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to SSR. First column: varying number of features $p$. Second column: varying sample size $n$. Third column: varying signal strength $\beta_{max}$. Fourth column: varying sparsity $s$.}
-    \label{fig:5.1.2}
+    \label{fig:5.1.2a}
 \end{figure}
 
-Figure 3 shows the computation time (top row) and relative computation time compared to SSR (bottom row) of solving sparse logistic regression problem with different screening methods. ASlores is also uniformly faster than other methods and this improvement is significant except for some atypical cases motioned before.
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale = 0.59]{plots/512b.pdf}    \caption{Comparing speed of screening methods for sparse logistic regression model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to SSR. First column: Varying number of grid points $L$. Second column: Varying range of grid $\lambda_{\min}/\lambda_{\max}$. Third column: Varying number of grid points $L$ with fixed spacing.}
+    \label{fig:5.1.2b}
+\end{figure}
+
+Figure 4 and 5 show the computation time (top row) and relative computation time compared to SSR (bottom row) of solving sparse logistic regression problem with different screening methods. ASlores is also uniformly faster than other methods and this improvement is significant except for some atypical cases motioned before.
 
 
 \subsection{Real data analysis}
 \label{sec:real-data}
 
-In previous sections, we used simulation to compare the screening methods under different scenario. In real world, data may be generated from different complicated models that cannot be covered by a simulation study, so in this section we are going to test the screening methods for lasso model on some real data sets to make sure our comparison conclusion is representative in real world. Following the studies of \citep{wang2013lasso, xiang2016screening, zeng2017efficient}, we will test the lasso screening methods on the following data sets:
+In previous sections, we used simulation to compare the screening methods under different scenario. In real world, data may be generated from different complicated models that cannot be covered by a simulation study, so in this section we are going to test the screening methods for lasso model on some real data sets to make sure our comparison conclusion is representative in real world. Following the studies of \citep{wang2013lasso, xiang2016screening, zeng2021hybrid}, we will test the lasso screening methods on the following data sets:
 
 \begin{enumerate}
     \item \textbf{Breast cancer gene expression data
