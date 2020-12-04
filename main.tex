@@ -2,7 +2,8 @@
 
 The least absolute shrinkage and selection operator, or lasso \citep{tibshirani1996regression}, is a popular model in statistics and machine learning, especially in high-dimensional problems. The model can be defined as the following modification of the least squares optimization problem:
 \begin{equation}
-    \hat{\beta}(\lambda)=\underset{\beta\in \mathbb{R}^p}{\mathrm{argmin}}\frac{1}{2n}||y-X\beta||_2^2+\lambda||\beta||_1,
+  \label{eq:lasso}
+  \hat{\beta}(\lambda)=\underset{\beta\in \mathbb{R}^p}{\mathrm{argmin}}\frac{1}{2n}||y-X\beta||_2^2+\lambda||\beta||_1,
 \end{equation}
 where $y$ is an $n\times 1$ vector of responses, $X=(x_1,x_2,...,x_p)$ is an $n\times p$ matrix of features, $\beta\in \mathbb{R}^p$ is the $p\times 1$ coefficient vector and $\lambda$ is the regularization tuning parameter. Throughout, we use $||\cdot||_2$ denotes the $l_2$ (Euclidean) norm and $||\cdot||_1$ denotes the $l_1$ norm. 
 
@@ -33,7 +34,8 @@ This manuscript provides a brief review of existing feature screening rules in S
 
 Throughout this paper, it will be assumed that $y$ is centered and $\{x_j\}_{j=1}^p$ are centered and standardized:
 \begin{equation}
-    \sum_{i=1}^ny_i=0, \qquad \sum_{i=1}^n x_{ij}=0, \qquad \sum_{i=1}^n x_{ij}^2=n,\qquad j=1,2,...,p.
+  \label{eq:std}
+  \sum_{i=1}^ny_i=0, \qquad \sum_{i=1}^n x_{ij}=0, \qquad \sum_{i=1}^n x_{ij}^2=n,\qquad j=1,2,...,p.
 \end{equation}
 Standardization ensures that the penalty is applied equally to all features, even if originally measured in different units. It also improves the efficiency and stability of the optimization, and helps to simplify optimization.  For example, under this standardization, the intercept is exactly 0 and thus may be ignored.  Standardization also simplifies the formulas for screening rules and thus allows for more efficient implementation.  Furthermore, this can be done without loss of generality as one can always obtain the solution on the original scale through a simple linear transformation of the standardized solution.
 
@@ -43,6 +45,7 @@ The goal of pathwise algorithms is to solve for this entire solution path.  This
 
 In convex optimization, the Karush-Kuhn-Tucker (KKT) conditions are both necessary and sufficient for any optimal solution.  Screening rules take advantage of these KKT conditions in order to discard inactive coefficients.  For the lasso, the KKT conditions governing the optimal solution $\hat{\beta}(\lambda)$ are given by
 \begin{equation}
+  \label{eq:kkt}
   \begin{aligned}
     x_j^Tr(\lambda)/n &= \lambda \, \sign \, \hat{\beta}(\lambda)_j & & \textrm{if } \hat{\beta}(\lambda)_j\neq 0,\\
     |x_j^Tr(\lambda)/n| &\leq \lambda & & \textrm{if } \hat{\beta}(\lambda)_j= 0.
@@ -63,29 +66,30 @@ Each post-convergence check requires $O(np)$ operations and is therefore costly 
 
 Given the solution $\hat{\beta}(\lambda_k)$ and residual vector $r(\lambda_k)=y-X\hat{\beta}(\lambda_k)$ at $\lambda_k$, the SSR discards the $j$-th feature at $\lambda_{k+1}$ if:
 \begin{equation}
-    |x_j^Tr(\lambda_k)/n|<2\lambda_{k+1}-\lambda_k.
+  \label{eq:ssr}
+  |x_j^Tr(\lambda_k)/n|<2\lambda_{k+1}-\lambda_k.
 \end{equation}
 The SSR is derived from the KKT condition and the ``unit-slope'' assumption that the size of the slope of $x_j^Tr(\lambda)/n$ over $\lambda$ is bounded by 1. 
 
 The biggest problem of SSR is that the ``unit-slope'' assumption may not hold and thus discarded features are not guaranteed to have zero coefficients. As with AC, a post-convergence KKT check is therefore needed for the discarded features to make sure their coefficients are truly zero. If violations occur, we again need to refit the model, adding the violating features and repeating the post-convergence check. However, previous studies have shown that violations are rare, so the additional $O(np)$ cost for repeating a KKT check hardly ever arises.
 
-A nice property about SSR with post-convergence check is the quantity $x_j^Tr(\lambda_k)/n$ is calculated at $\lambda_k$ in (2) during post-convergence check. Then in SSR screening at $\lambda_{k+1}$ (4), this quantity is reused. Besides the quantity $x_j^Tr(\lambda_k)/n$, other parts of the computation of (4) have almost zero cost. In conclusion, the computation cost of SSR is generally only the cost of the post-convergence check, which is O(npK).
+SSR possesses the nice property that the quantity $x_j^Tr(\lambda_k)/n$ needed for SSR screening \eqref{eq:ssr} at $\lambda_{k+1}$ has already been calculated during post-convergence checking at $\lambda_k$ in \eqref{eq:kkt}. As this is the only computationally intensive aspect of SSR screening, and SSR violations are rare, its computational cost is roughly $O(npK)$.
 
 \subsection{Safe rules}
 
-Compared to strong rules, safe rules can discard features safely. Those discarded features are guaranteed to have zero coefficients and we do not need an addition check to validate them. We will mainly focus on enhanced dual polytope projections (EDPP) rules\citep{wang2013lasso}, because they outperform other current safe rules and are easy to incorporate in our method.
+Compared to strong rules, safe rules are never violated. Features can be discarded safely, with no need for post-covergence checking, as the coefficients are guaranteed to be zero by the rule. We will mainly focus on enhanced dual polytope projections (EDPP) rules\citep{wang2013lasso} because they outperform other known safe rules and are easy to incorporate into our method.
 
-The EDPP rules are derived from the dual formulation of the lasso problem and provide a bound for the residual vector $r(\lambda)$. Then using the KKT conditions, some features can be guaranteed to have zero coefficients and be discarded safely. Two forms of the EDPP rule, basic EDPP (BEDPP) and sequential EDPP (SEDPP)\citep{wang2013lasso}, were proposed and under the standardization (2) can be simplified in the following theorems\citep{Zeng2021}:
+The EDPP rules are derived from the dual formulation of the lasso problem and provide a bound for the residual vector $r(\lambda)$. Then using the KKT conditions, some features can be guaranteed to have zero coefficients and be discarded safely. Two forms of the EDPP rule, basic EDPP (BEDPP) and sequential EDPP (SEDPP)\citep{wang2013lasso}, were proposed and under the standardization \eqref{eq:std} can be simplified in the following theorems \citep{Zeng2021}:
 
 \begin{theorem}[BEDPP]
-    For the lasso problem (1), let $\lambda_0:=\max_j|x_j^Ty/n|$ and $x_*=argmax_{x_j}|x_j^Ty/n|$. Under (2) and for any $\lambda\in(0,\lambda_0]$, we have $\hat{\beta}_j(\lambda)=0$ if
+    For the lasso problem \eqref{eq:lasso}, let $\lambda_0:=\max_j|x_j^Ty/n|$ and $x_*=argmax_{x_j}|x_j^Ty/n|$. Under \eqref{eq:std} and for any $\lambda\in(0,\lambda_0]$, we have $\hat{\beta}_j(\lambda)=0$ if
     \begin{equation}
         |(\lambda_0+\lambda)x_j^Ty-(\lambda_0-\lambda)sign(x_*^Ty)\lambda_0x_j^Tx_*|<2n\lambda_0\lambda-(\lambda_0-\lambda)\sqrt{n||y||_2^2-n^2\lambda_0^2}.
     \end{equation}
 \end{theorem}
 
 \begin{theorem}[SEDPP]
-    For the lasso problem (1), let $\lambda_0:=\max_j|x_j^Ty/n|$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$. Under condition (2)
+    For the lasso problem \eqref{eq:lasso}, let $\lambda_0:=\max_j|x_j^Ty/n|$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$. Under condition \eqref{eq:std}
     \begin{enumerate}
         \item For any $k=1,2,...,K-1$, given $\hat{\beta}(\lambda_k)$, $r(\lambda_k)$ and $\hat{y}(\lambda_k):=X\hat{\beta}(\lambda_k)$, then $\hat{\beta}_j(\lambda_{k+1})=0$ if
         \begin{equation}
@@ -97,11 +101,11 @@ The EDPP rules are derived from the dual formulation of the lasso problem and pr
     \end{enumerate}
 \end{theorem}
 
-In BEDPP rule (4), the most costly parts of computation that take O(np) time are the computation of $\{x_j^Ty\}_{j=1}^p$ and $\{x_j^Tx_*\}_{j=1}^p$ ($x_*^Ty$ is an element of $\{x_j^Ty\}_{j=1}^p$). These quantities does not depend on $\lambda_k$ and thus only need to be computed once at the beginning and stored. After this step, other computation of the rule takes almost zero time, so BEDPP rule can be viewed as an one-step rule with O(np) cost.
+In BEDPP rule (4), the most costly parts of computation that take $O(np)$ time are the computation of $\{x_j^Ty\}_{j=1}^p$ and $\{x_j^Tx_*\}_{j=1}^p$ ($x_*^Ty$ is an element of $\{x_j^Ty\}_{j=1}^p$). These quantities do not depend on $\lambda_k$ and thus only need to be computed once at the beginning and stored. After this step, other computation of the rule takes almost zero time, so BEDPP rule can be viewed as an one-step rule with $O(np)$ cost.
 
-In SEDPP rule (5), it requires computation of $\{x_j^Ty\}_{j=1}^p$ and $\{x_j^Tr(\lambda_k)\}_{j=1}^p$ ($x_j^T\hat{y}(\lambda_k)$ can be computed as $x_j^Ty-x_j^Tr(\lambda_k)$). For screening at every $\lambda_{k+1}$, $\{x_j^Tr(\lambda_k)\}_{j=1}^p$ need to be recalculated and this step takes O(np) time. Thus SEDPP is a sequential rule and computation of the sequence takes O(npK) time.
+In contrast, the SEDPP rule (5) requires $\{x_j^Tr(\lambda_k)\}_{j=1}^p$, which must be recomputed at every $\lam$.  This is the primary source of computational burden, as the other terms in the rule are $\{x_j^Ty\}_{j=1}^p$, which only needs to be calculated once, and $x_j^T\hat{y}(\lambda_k)$, which can be computed as $x_j^Ty-x_j^Tr(\lambda_k)$. Thus, the sequential safe rule SEDPP requires $O(npK)$ operations.
 
-BEDPP is much faster, but at each $\lambda_k$, it is bounding $r(\lambda_k)$ using $r(\lambda_0)=y$ as a reference. As $\lambda_k$ gets further away from $\lambda_0$, this bound becomes less precise and the screening rule becomes less powerful. SEDPP is slower, but at each $\lambda_{k+1}$, it uses $r(\lambda_{k})$ as the reference. Because $\lambda_{k+1}$ and $\lambda_k$ are close, the bound will be tight and screening will keep being powerful.
+Comparing the two, BEDPP is much faster, but at each $\lambda_k$, it is bounding $r(\lambda_k)$ using $r(\lambda_0)=y$ as a reference. As $\lambda_k$ gets further away from $\lambda_0$, this bound becomes less precise and the screening rule becomes less powerful. SEDPP is slower, but at each $\lambda_{k+1}$, it uses $r(\lambda_{k})$ as the reference. Because $\lambda_{k+1}$ and $\lambda_k$ are close, the bound remains tight and screening continues to be powerful over the entire path.
 
 \subsection{Hybrid safe-strong rules}
 
@@ -130,7 +134,7 @@ From the SEDPP rule (6) in Theorem 2.2, we can do screening at $\lambda_{k+1}$ g
 Similar to SEDPP, the Adaptive EDPP rule can be stated in the following theorem:
 
 \begin{theorem}[Adaptive EDPP]
-    For the lasso problem (1), let $\lambda_0:=\max_j|x_j^Ty/n|$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$ and the last updated reference point is $\lambda_k$. Under condition (2)
+    For the lasso problem \eqref{eq:lasso}, let $\lambda_0:=\max_j|x_j^Ty/n|$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$ and the last updated reference point is $\lambda_k$. Under condition \eqref{eq:std}
     \begin{enumerate}
         \item For any $k=1,2,...,K-1$, given $\hat{\beta}(\lambda_k)$, $r(\lambda_k)$ and $\hat{y}(\lambda_k):=X\hat{\beta}(\lambda_k)$, then for some next update point $k+B$ and any $b$ s.t. $k<k+b\leq k+B\leq K$, $\hat{\beta}_j(\lambda_{k+b})=0$ if
         \begin{equation}
@@ -154,7 +158,7 @@ may not be any beneficial after that. Compared to sequential methods like SEDPP,
 
 Because HSSR \citep{Zeng2021} have been shown to provide significant speedup compared to safe rules alone, we should also consider adding a strong rule screening after the adaptive EDPP rule screening. The SSR and adpative EDPP rule combined will form our adaptive hybrid rule: Ada-SSR-EDPP.
 
-This combination is not trivial. For ordinary SSR, the quantities $x_j^Tr(\lambda_k)$ used in (4) is already computed in the previous post-convergence check in (2). However, combined with safe rules, previous post-convergence check only needs to check features that are not discarded at the previous $\lambda$-value. Thus, for features that are discarded at the previous $\lambda$-value but not at the current $\lambda$-value, their corresponding $x_j^Tr(\lambda_k)$ have not been computed yet and thus cannot be used without additional cost. Similar to the idea of BASIL \citep{qian2019fast}, we can also do the strong rule screening adaptively by using the latest $x_j^Tr(\lambda_k)$ available, which is computed by adaptive EDPP rule at the latest update, to reduce the number of required computations.
+This combination is not trivial. For ordinary SSR, the quantities $x_j^Tr(\lambda_k)$ used in (4) is already computed in the previous post-convergence check in (3). However, combined with safe rules, previous post-convergence check only needs to check features that are not discarded at the previous $\lambda$-value. Thus, for features that are discarded at the previous $\lambda$-value but not at the current $\lambda$-value, their corresponding $x_j^Tr(\lambda_k)$ have not been computed yet and thus cannot be used without additional cost. Similar to the idea of BASIL \citep{qian2019fast}, we can also do the strong rule screening adaptively by using the latest $x_j^Tr(\lambda_k)$ available, which is computed by adaptive EDPP rule at the latest update, to reduce the number of required computations.
 
 We are going to combine adaptive EDPP rule and SSR to form the Ada-SSR-EDPP as following. Suppose we have a latest updated reference $\lambda_k$ with $x_j^Tr(\lambda_k)$ computed and want the solution at some following $\lambda_{k+b}$. First, we do adaptive EDPP rule screening. Second, an adaptive SSR screening is carried out on the features that have not been discarded by adaptive EDPP rule and discard features that satisfies: $|x_j^Tr(\lambda_k)/n|<2\lambda_{k+b}-\lambda_k$. Third, a post-convergence check is conducted on the features that were discarded by adaptive SSR but not discarded by adaptive EDPP rule. Then we move on to the next $\lambda_{k+b+1}$ and repeat the same procedure, unless we determine an update is needed.
 
@@ -270,7 +274,7 @@ For the sparse logistic regression model (15), let $\lambda_0:=\max_j|x_j^Ty/n|$
     \end{split}
 \end{equation}
 
-Under condition (2) except for standardization for $y$, for any $k=1,2,...,K-1$, assume $\hat{\beta}(\lambda_k)$, $r(\lambda_k)=y-\pi(\hat{\beta}(\lambda_k))$, $x_*\in\{x_j:\hat{\beta}_j(\lambda_k)\neq0\} $, $\theta(\lambda_k)=\{r_i(\lambda_k)\Tilde{y}_i\}_{i=1}^n$ and $\hat{y}(\lambda_k):=\pi(\hat{\beta}(\lambda_k))$ are known. For any $k+b>k$, let
+Under condition \eqref{eq:std} except for standardization for $y$, for any $k=1,2,...,K-1$, assume $\hat{\beta}(\lambda_k)$, $r(\lambda_k)=y-\pi(\hat{\beta}(\lambda_k))$, $x_*\in\{x_j:\hat{\beta}_j(\lambda_k)\neq0\} $, $\theta(\lambda_k)=\{r_i(\lambda_k)\Tilde{y}_i\}_{i=1}^n$ and $\hat{y}(\lambda_k):=\pi(\hat{\beta}(\lambda_k))$ are known. For any $k+b>k$, let
 
 \begin{equation}
     R(\lambda_{k+b})=\sqrt{\frac{n}{2}\bigg[g\bigg(\frac{\lambda_{k+b}}{\lambda_k}\theta(\lambda_k)\bigg)-g\bigg(\theta(\lambda_k)\bigg)+\bigg(1-\frac{\lambda_{k+b}}{\lambda_k}\bigg)\bigg(\nabla g\big(\theta(\lambda_k)\big)\bigg)^T\theta(\lambda_k)\bigg]},
@@ -315,7 +319,7 @@ The group lasso problem \citep{yuan2006model} can be defined as:
 \begin{equation}
     \hat{\beta}(\lambda) = \underset{\beta\in \mathbb{R}^p}{\mathrm{argmin}}\frac{1}{2n}\bigg|\bigg|y-\sum_{g=1}^GX_g\beta_g\bigg|\bigg|_2^2+\lambda\sum_{g=1}^G\sqrt{p_g}||\beta_g||_2,
 \end{equation}
-where $\beta=(\beta_1^T,...,\beta_G^T)^T$, $X_g$ is a $n\times p_g$ sub-matrix consisting of columns of $X$ corresponding to features in group $g$, $g=1,2,...,G$. Besides standardization in (2), we apply an addition level of standardization at the group level\citep{breheny2015group}:
+where $\beta=(\beta_1^T,...,\beta_G^T)^T$, $X_g$ is a $n\times p_g$ sub-matrix consisting of columns of $X$ corresponding to features in group $g$, $g=1,2,...,G$. Besides standardization in \eqref{eq:std}, we apply an addition level of standardization at the group level\citep{breheny2015group}:
 
 \begin{equation}
     X_g^TX_g=nI_{p_g\times p_g},\qquad g=1,2,...,G.
@@ -330,7 +334,7 @@ According to the KKT condition, we can use SSR to do strong rule screening. Give
 For safe rule screening, we have SEDPP for group lasso\citep{wang2013lasso} and we can extend it the adaptive EDPP rule for group lasso.
 
 \begin{theorem}[Adaptive EDPP for group lasso]
-For the group lasso problem (22), let $\lambda_0:=\max_j\frac{||X_g^Ty||_2}{n\sqrt{p_g}}$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$. Under condition (2) and (23)
+For the group lasso problem (22), let $\lambda_0:=\max_j\frac{||X_g^Ty||_2}{n\sqrt{p_g}}$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$. Under condition \eqref{eq:std} and (23)
     \begin{enumerate}
         \item For any $k=1,2,...,K-1$, given $\hat{\beta}(\lambda_k)$, $r(\lambda_k)$ and $\hat{y}(\lambda_k):=\sum_{g=1}^GX_g\hat{\beta}_g(\lambda_k)$, then for any  $k+b>k$, $\hat{\beta}_g(\lambda_{k+b})=0$ if
         \begin{equation}
@@ -362,7 +366,7 @@ For all the following experiments, we will solve the lasso model along a path of
 
 \subsubsection{Lasso model}
 
-In this part, we will solve the standard lasso problem (1) with different screening methods: Active-set Cycling (AC) alone, SSR, SEDPP, HSSR and adaptive hybrid rule (AHR). The AHR is Ada-SSR-EDPP which uses EDPP as the safe rule. Note that AC is always incorporated with all other screening rules, so using AC alone can be considered as a baseline for this comparison.
+In this part, we will solve the standard lasso problem \eqref{eq:lasso} with different screening methods: Active-set Cycling (AC) alone, SSR, SEDPP, HSSR and adaptive hybrid rule (AHR). The AHR is Ada-SSR-EDPP which uses EDPP as the safe rule. Note that AC is always incorporated with all other screening rules, so using AC alone can be considered as a baseline for this comparison.
 
 The data will be simulated from the model: $y=X\beta+0.1\epsilon$. $X$ and $\epsilon$ are sampled i.i.d from $N(0,1)$. $\beta$ will have $s$ randomly selected elements equally spaced between $[-\beta_{max},\beta_{max}]$ and the rest $p-s$ elements are zeros. The lasso model is solved along a grid of $L$ $\lambda$-values equally spaced on the log scale between $[\lambda_{\max},\lambda_{\min}]$. Each setting is replicated $10$ times to calculate the average time cost. By default we set $p=10,000$, $n=1,000$, $s=20$, $\beta_{max}=1$, $L=100$, $\lambda_{\min}/\lambda_{\max}=0.05$. We consider the following cases where one of the variables above is varying at a time:
 
@@ -390,7 +394,7 @@ The data will be simulated from the model: $y=X\beta+0.1\epsilon$. $X$ and $\eps
 
 Figure 2 and Figure 3 shows the computation time (top row) and relative computation time compared to AC (bottom row) of solving lasso problem with different screening methods. The AHR is uniformly the fastest under all settings. Most of the time it is 2-8 times faster than any other screening methods. It outperforms other methods especially when the data set is large (large $n$ or large $p$), the active features are sparse among all features (small $s$) or the grid of $\lambda$-value is fine (large $L$ or $\lambda_{\min}/\lambda_{\max}$). 
 
-There are several atypical cases when AHR's advantage over other methods is not as significant: (1) $p$ or $n$ is small. This corresponds a small data set and computation will be less challenging. (2) $\beta_{max}$ is close to zero. This means all the nonzero coefficients are close to zero and are hard to be distinguished from zero coefficients. This can cause problem for any statistical learning methods. (3) $s$ is large. In this case, the underlying model that generate the data set is not sparse in the sense that proportion of nonzero coefficients is not small. Lasso model would not be the optimal model to analyse such an data set. (4) $L$ is small. In this case, only a coarse grid of $\lambda$-values are considered. The $\lambda$-value selected in this case may be far from optimal.
+There are several atypical cases when AHR's advantage over other methods is not as significant: \eqref{eq:lasso} $p$ or $n$ is small. This corresponds a small data set and computation will be less challenging. (2) $\beta_{max}$ is close to zero. This means all the nonzero coefficients are close to zero and are hard to be distinguished from zero coefficients. This can cause problem for any statistical learning methods. (3) $s$ is large. In this case, the underlying model that generate the data set is not sparse in the sense that proportion of nonzero coefficients is not small. Lasso model would not be the optimal model to analyse such an data set. (4) $L$ is small. In this case, only a coarse grid of $\lambda$-values are considered. The $\lambda$-value selected in this case may be far from optimal.
 
 We also tried varying other factors, for example, varying the correlation among features in $X$, varying the sparsity with fixed signal strength or varying the minimum $\lambda$-value $\lambda_K$. The AHR also shows uniform advantage over other method when those factors vary in reasonable ranges.
 
