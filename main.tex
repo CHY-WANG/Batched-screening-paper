@@ -59,15 +59,15 @@ After computing the solution, a post-convergence KKT conditions check is perform
 
 \subsection{Strong rules}
 
-Sequential strong rule (SSR) \citep{tibshirani2011regression} is a fast and powerful feature screening rule. Given the solution $\hat{\beta}(\lambda_k)$ at $\lambda_k$, we can compute the residual vector as $r(\lambda_k)=y-X\hat{\beta}(\lambda_k)$. The SSR discards the $j$-th feature at $\lambda_{k+1}$ if:
+Each post-convergence check requires $O(np)$ operations and is therefore costly to repeat when violations occur.  These violations are inevitable in active-set cycling, as they occur every time a feature is added to the model.  Sequential strong rules (SSR) \citep{tibshirani2011regression} attempt to retain the basic idea of active-set cycling, but reduce violations by retaining features that are ``close'' to entering the model.
 
+Given the solution $\hat{\beta}(\lambda_k)$ and residual vector $r(\lambda_k)=y-X\hat{\beta}(\lambda_k)$ at $\lambda_k$, the SSR discards the $j$-th feature at $\lambda_{k+1}$ if:
 \begin{equation}
     |x_j^Tr(\lambda_k)/n|<2\lambda_{k+1}-\lambda_k.
 \end{equation}
+The SSR is derived from the KKT condition and the ``unit-slope'' assumption that the size of the slope of $x_j^Tr(\lambda)/n$ over $\lambda$ is bounded by 1. 
 
-The SSR is derived from the KKT condition and the "unit-slope" assumption that the size of the slope of $x_j^Tr(\lambda)/n$ over $\lambda$ is bounded by 1. 
-
-The biggest problem of SSR is that the "unit-slope" assumption may not hold and thus discarded features are not guaranteed to have zero coefficients. A post-convergence KKT check is needed for the discarded features to make sure their coefficients are truly zero. If violations occur, we need to refit the model adding the violating features and repeat the post-convergence check. The cost for each post-convergence check is O(np) and especially costly when violations occur. However, previous studies have shown that violations are rare and thus additional cost is acceptable.
+The biggest problem of SSR is that the ``unit-slope'' assumption may not hold and thus discarded features are not guaranteed to have zero coefficients. As with AC, a post-convergence KKT check is therefore needed for the discarded features to make sure their coefficients are truly zero. If violations occur, we again need to refit the model, adding the violating features and repeating the post-convergence check. However, previous studies have shown that violations are rare, so the additional $O(np)$ cost for repeating a KKT check hardly ever arises.
 
 A nice property about SSR with post-convergence check is the quantity $x_j^Tr(\lambda_k)/n$ is calculated at $\lambda_k$ in (2) during post-convergence check. Then in SSR screening at $\lambda_{k+1}$ (4), this quantity is reused. Besides the quantity $x_j^Tr(\lambda_k)/n$, other parts of the computation of (4) have almost zero cost. In conclusion, the computation cost of SSR is generally only the cost of the post-convergence check, which is O(npK).
 
