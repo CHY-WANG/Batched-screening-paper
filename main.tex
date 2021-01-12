@@ -76,6 +76,7 @@ The biggest problem of SSR is that the ``unit-slope'' assumption may not hold an
 SSR possesses the nice property that the quantity $x_j^Tr(\lambda_k)/n$ needed for SSR screening \eqref{eq:ssr} at $\lambda_{k+1}$ has already been calculated during post-convergence checking at $\lambda_k$ in \eqref{eq:kkt}. As this is the only computationally intensive aspect of SSR screening, and SSR violations are rare, its computational cost is roughly $O(npK)$.
 
 \subsection{Safe rules}
+\label{sec:safe}
 
 Compared to strong rules, safe rules are never violated. Features can be discarded safely, with no need for post-covergence checking, as the coefficients are guaranteed to be zero by the rule. We will mainly focus on enhanced dual polytope projections (EDPP) rules\citep{wang2013lasso} because they outperform other known safe rules and are easy to incorporate into our method.
 
@@ -117,18 +118,18 @@ Batch screening iterative lasso (BASIL) \citep{qian2019fast} was proposed to car
 
 BASIL is most beneficial when $X$ is to large to be fit into the RAM, as it minimizes the amount of time spent reading from disk. During post-convergence checking, each $x_j$ only needs to be read in once for the entire batch and can be used multiple times for $\{\lambda_{k+1},\lambda_{k+2},...,\lambda_{k+B}\}$. Moreover, similar to SSR, the $x_j^Tr(\lambda_{x+b})$ values computed at BASIL's post-convergence check can be reused for screening at next batch.
 
-\pb{Mention Sure Iterative Screening and why we do not focus on it here; maybe in general, just introduce the idea of stochastic screening}
+\pb{Mention Sure Independence Screening \citep{Fan2008} and why we do not focus on it here; maybe in general, just introduce the idea of stochastic screening}
 
-\section{Adaptive hybrid rule}
+\section{Adaptive screening}
 \label{sec:method}
 
-In this section, we will introduce the framework of adaptive hybrid rules, implement them with EDPP as the safe rule to form Ada-SSR-EDPP and propose a strategy to adaptively updating the reference.
+% In this section, we will introduce the framework of adaptive hybrid rules, implement them with EDPP as the safe rule to form Ada-SSR-EDPP and propose a strategy to adaptively updating the reference.
 
-\subsection{Adaptive safe rule}
+\subsection{Adaptive safe rules}
 
-From the SEDPP rule \eqref{eq:sedpp} in Theorem 2.2, we can do screening at $\lambda_{k+1}$ using the solution at $\lambda_k$ as a reference. Now consider we are solving the lasso problem along the path $\lambda_0,...,\lambda_k,\lambda_{k+2},...,\lambda_K$ instead. Using the SEDPP rule, we can do screening at $\lambda_{k+2}$ using the solution at $\lambda_k$ as a reference as well, which is considered the previous solution now. Similarly, with solution at $\lambda_k$ as the reference, we can keep screening for a number of $\lambda$-values: $\lambda_{k+1},\lambda_{k+2},...$ until it is beneficial to update the reference to the newer solution at some $\lambda_{K+B}$ and in this way all the discarded features are guaranteed to be zero. Adaptive EDPP is still a safe rule, but it is neither sequential nor one-step.
+The SEDPP rule \eqref{eq:sedpp} from Theorem 2.2 allows us to screen features at $\lambda_{k+1}$ using the solution at $\lambda_k$ as a reference. However, since the grid of $\lam$ values is arbitrary, the rule can be just as easily applied to screen solutions at $\lam_{k+2}, \lam_{k+3}, \ldots$.  The difference is that in typical SEDPP usage, we would update the reference solution at every step of path; here, we are proposing to re-use solutions for several values of $\lam$, only updating the reference when it is computationally beneficial to do so.  We refer to this modification as \emph{adaptive EDPP}.  Adaptive EDPP is still a safe rule, but it is neither sequential nor one-step.  A similar idea would be to use the reference solution in batches, each one being used for a fixed number of $\lam$ steps.  However, since an appropriate batch size is difficult to determine ahead of time, and also because the ideal size changes along the path, we find that an adaptive approach is better. \pb{Do we have evidence for this?}
 
-Similar to SEDPP, the Adaptive EDPP rule can be stated in the following theorem:
+The Adaptive EDPP rule can be stated in the following theorem, which simply restates the theorems from Section~\ref{sec:safe} in terms of this new paradigm in which a single reference solution at $\lam_k$ is used to calculate screening rules at $\lam_{k+2}, \ldots, \lam_{k+B}$.
 
 \begin{theorem}[Adaptive EDPP]
     For the lasso problem \eqref{eq:lasso}, let $\lambda_0:=\max_j|x_j^Ty/n|$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$ and the last updated reference point is $\lambda_k$. Under condition \eqref{eq:std}
@@ -148,11 +149,11 @@ Similar to SEDPP, the Adaptive EDPP rule can be stated in the following theorem:
     \end{enumerate}
 \end{theorem}
 
-For each $\lambda$-value in one update $\lambda_{k+1},...,\lambda_{k+B}$, the computation in \eqref{eq:aedpp1} or \eqref{eq:aedpp2} is the same, except for one quantity $\lambda_{k+b}$ ($\lambda_b$ in the case $k=0$). The most expensive computations are $x_j^Tr(\lambda_k)$, $x_j^Tx_*$ and $x_j^Ty$, for $j=1,2,...,p$. $x_j^Ty$ and $x_j^Tx_*$ are the same for all $\lambda$-values, $x_j^Tr(\lambda_k)$ are the same for all $\lambda$-values within the update and $x_j^T\hat{y}(\lambda_k)=x_j^Ty-x_j^Tr(\lambda_k)$, so once they are computed, they can be stored and reused to avoid more computation in that update. These two computations take $O(np)$ time and the rest computation in \eqref{eq:aedpp1} or \eqref{eq:aedpp2} take at most a lower order of $O(p)$ time.
+For each $\lambda$ value in $\lambda_{k+1},...,\lambda_{k+B}$, the computation in \eqref{eq:aedpp1} or \eqref{eq:aedpp2} is the same, except for the quantity $\lambda_{k+b}$ ($\lambda_b$ in the case $k=0$). The expensive computations in calculating these rules are $x_j^Tr(\lambda_k)$, $x_j^Tx_*$ and $x_j^Ty$, all of which must be calculated for $j=1,2,...,p$ and thus require $O(np)$ operations; all other computations require at most $O(p)$ operations. However, since $x_j^Ty$ and $x_j^Tx_*$ are the same for all $\lambda$ values and $x_j^Tr(\lambda_k)$ is the same for all $\lambda$ values within the block, once they have been calculated once, they can be stored and reused to avoid additional computation for all remaining steps in the block.  Note that $x_j^T\hat{y}(\lambda_k)=x_j^Ty-x_j^Tr(\lambda_k)$, so this term also can be calculated efficiently.
 
-Compared to one-step methods like BEDPP, after updating, the solution as the reference at $\lambda_k$ and the solution at some $\lambda_{k+b}$ in that update are usually relatively close, so screening at $\lambda_{k+b}$ using solution at $\lambda_k$ will remain powerful. For one-step method, as $\lambda_k$ gets further away from $\lambda_0$, the screening power can drop drastically and may not be any beneficial after that. Compared to sequential methods like SEDPP, the adaptive method only requires one $O(np)$ computation in one update, while SEDPP requires one $O(np)$ computation for each $\lambda$-value. The framework of adaptive safe screening can also be easily applied to other sequential safe rules, to form a family of adaptive safe rules to achieve the same improvement.
+Compared to one-step methods like BEDPP, the reference solutions are continually updated.  As a result, the reference is always relatively close to the solution, and screening remains powerful over the entire path, unlike one-step methods where screening power drops drastically as $\lambda_k$ gets further away from $\lambda_0$. Compared to sequential methods like SEDPP, the adaptive method only requires $O(np)$ computations per update, while SEDPP requires $O(np)$ computations for each $\lambda$ value. The framework of adaptive safe screening can also be easily applied to other sequential safe rules, to form a family of adaptive safe rules.
 
-\subsection{Adaptive hybrid rule on top of adaptive safe rule}
+\subsection{Adaptive hybrid rules}
 
 Because HSSR \citep{Zeng2021} have been shown to provide significant speedup compared to safe rules alone, we should also consider adding a strong rule screening after the adaptive EDPP rule screening. The SSR and adpative EDPP rule combined will form our adaptive hybrid rule: Ada-SSR-EDPP.
 
