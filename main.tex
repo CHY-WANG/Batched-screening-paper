@@ -62,7 +62,7 @@ After computing the solution, a post-convergence KKT conditions check is perform
 
 \subsection{Strong rules}
 
-Each post-convergence check requires $O(np)$ operations and is therefore costly to repeat when violations occur.  These violations are inevitable in active-set cycling, as they occur every time a feature is added to the model.  Sequential strong rules (SSR) \citep{tibshirani2011regression} attempt to retain the basic idea of active-set cycling, but reduce violations by retaining features that are ``close'' to entering the model.
+Each post-convergence check requires $O(np)$ operations and is therefore costly to repeat when violations occur.  These violations are inevitable in active-set cycling, as they occur every time a feature is added to the model.  Sequential strong rules (SSR) \citep{tibshirani2011regression} have the basic idea of active-set cycling, but reduce violations by retaining features that are ``close'' to entering the model.
 
 Given the solution $\hat{\beta}(\lambda_k)$ and residual vector $r(\lambda_k)=y-X\hat{\beta}(\lambda_k)$ at $\lambda_k$, the SSR discards the $j$-th feature at $\lambda_{k+1}$ if:
 \begin{equation}
