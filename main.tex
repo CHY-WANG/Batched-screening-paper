@@ -118,7 +118,7 @@ Batch screening iterative lasso (BASIL) \citep{qian2019fast} was proposed to car
 
 BASIL is most beneficial when $X$ is to large to be fit into the RAM, as it minimizes the amount of time spent reading from disk. During post-convergence checking, each $x_j$ only needs to be read in once for the entire batch and can be used multiple times for $\{\lambda_{k+1},\lambda_{k+2},...,\lambda_{k+B}\}$. Moreover, similar to SSR, the $x_j^Tr(\lambda_{x+b})$ values computed at BASIL's post-convergence check can be reused for screening at next batch.
 
-\pb{Mention Sure Independence Screening \citep{Fan2008} and why we do not focus on it here; maybe in general, just introduce the idea of stochastic screening}
+In this paper, we will only focus on screening methods that never falsely discard an active feature. There are also almost sure screening methods where probability of false discards is positive but tends to 0 under certain conditions, such as Sure Independence Screening \citep{Fan2008}.
 
 \section{Adaptive screening}
 \label{sec:method}
@@ -127,9 +127,9 @@ BASIL is most beneficial when $X$ is to large to be fit into the RAM, as it mini
 
 \subsection{Adaptive safe rules}
 
-The SEDPP rule \eqref{eq:sedpp} from Theorem 2.2 allows us to screen features at $\lambda_{k+1}$ using the solution at $\lambda_k$ as a reference. However, since the grid of $\lam$ values is arbitrary, the rule can be just as easily applied to screen solutions at $\lam_{k+2}, \lam_{k+3}, \ldots$.  The difference is that in typical SEDPP usage, we would update the reference solution at every step of path; here, we are proposing to re-use solutions for several values of $\lam$, only updating the reference when it is computationally beneficial to do so.  We refer to this modification as \emph{adaptive EDPP}.  Adaptive EDPP is still a safe rule, but it is neither sequential nor one-step.  A similar idea would be to use the reference solution in batches, each one being used for a fixed number of $\lam$ steps.  However, since an appropriate batch size is difficult to determine ahead of time, and also because the ideal size changes along the path, we find that an adaptive approach is better. \pb{Do we have evidence for this?}
+The SEDPP rule \eqref{eq:sedpp} from Theorem 2.2 allows us to screen features at $\lambda_{k+1}$ using the solution at $\lambda_k$ as a reference. However, since the grid of $\lam$ values is arbitrary, the rule with the same reference can be just as easily applied to screen solutions at $\lam_{k+2}, \lam_{k+3}, \ldots$, until some $\lam_{k+B}$, where we update the reference to the current solution at $\lam_{k+B}$ and screen the following $\lam$ values.  The difference is that in typical SEDPP usage, we would update the reference solution at every step of path; here, we are proposing to re-use solutions for several values of $\lam$, only updating the reference when it is computationally beneficial to do so.  We refer to this modification as \emph{adaptive EDPP}.  Adaptive EDPP is still a safe rule, but it is neither sequential nor one-step.  A similar idea would be to use the reference solution in batches, each one being used for a fixed number of $\lam$ steps.  However, since an appropriate batch size is difficult to determine ahead of time, and also because the ideal size changes along the path, we find that an adaptive approach is better. \pb{Do we have evidence for this?}
 
-The Adaptive EDPP rule can be stated in the following theorem, which simply restates the theorems from Section~\ref{sec:safe} in terms of this new paradigm in which a single reference solution at $\lam_k$ is used to calculate screening rules at $\lam_{k+2}, \ldots, \lam_{k+B}$.
+The Adaptive EDPP rule can be stated in the following theorem, which simply restates the theorems from Section~\ref{sec:safe} in terms of this new paradigm in which a single reference solution at $\lam_k$ is used to calculate screening rules at $\lam_{k+1}, \ldots, \lam_{k+B}$.
 
 \begin{theorem}[Adaptive EDPP]
     For the lasso problem \eqref{eq:lasso}, let $\lambda_0:=\max_j|x_j^Ty/n|$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$ and the last updated reference point is $\lambda_k$. Under condition \eqref{eq:std}
@@ -141,7 +141,7 @@ The Adaptive EDPP rule can be stated in the following theorem, which simply rest
                 &\left|2\lambda_{k+b}x_j^Tr(\lambda_k)+(\lambda_k-\lambda_{k+b})\left( x_j^Ty-\frac{y^T\hat{y}(\lambda_k)x_j^T\hat{y}(\lambda_k)}{||\hat{y}(\lambda_k)||_2^2}\right)\right|\\&<2n\lambda_k\lambda_{k+b}-(\lambda_k-\lambda_{k+b})\sqrt{n||y||_2^2-\frac{n(y^T\hat{y}(\lambda_k))^2}{||\hat{y}(\lambda_k)||_2^2}}
             \end{split}
         \end{equation}
-        \item For k=0, i.e., $\lambda_k=\lambda_0$, then for some next update point $k+B$ and any $b$ s.t. $0<b\leq B\leq K$, $\hat{\beta}_j(\lambda_{k+b})=0$ if
+        \item For k=0, i.e., $\lambda_k=\lambda_0$, then for some next update point $B$ and any $b$ s.t. $0<b\leq B\leq K$, $\hat{\beta}_j(\lambda_{k+b})=0$ if
         \begin{equation}
             \label{eq:aedpp2}
             |(\lambda_0+\lambda_b)x_j^Ty-(\lambda_0-\lambda_b)sign(x_*^Ty)\lambda_0x_j^Tx_*|<2n\lambda_0\lambda_b-(\lambda_0-\lambda_b)\sqrt{n||y||_2^2-n^2\lambda_0^2}.
@@ -198,14 +198,14 @@ In this section, we will show the algorithm to solve the lasso problem over the 
             Compute and save: $\{x_j^Tr(\lambda_k)\}_{j=1}^p, \{x_j^T\hat{y}(\lambda_k)=x_j^Ty-x_j^Tr(\lambda_k)\}_{j=1}^p, \hat{y}(\lambda_k)=y-r(\lambda_k)$.}
             
     }
-    \Output{$\{\hat{\beta}(\lambda_{k})\}_{k=1}^K, r(\lambda_{k+B})$}
+    \Output{$\{\hat{\beta}(\lambda_{k})\}_{k=1}^K$}
     \caption{Pathwise lasso algorithm with adaptive hybrid rule screening}
 \end{algorithm}
 
 \subsection{Adaptive update algorithm}
 \label{sec:adaptive}
 
-In this section we will fill in line 11 in Algorithm 1. We will develop an algorithm to adaptively determining when update the reference for screening, by evaluating screening power at previous $\lambda$-values since the last update. Our goal is to minimize the computation cost, so we will first analyse computation complexity for each part in Algorithm 1. Then we will propose an adaptive algorithm that can minimize the entire computation cost.
+In this section we will fill in line 11 in Algorithm 1. We will develop an algorithm to adaptively determining when to update the reference for screening, by evaluating screening power at previous $\lambda$-values since the last update. Our goal is to minimize the computation cost, so we will first analyse computation complexity for each part in Algorithm 1. Then we will propose an adaptive algorithm that can minimize the entire computation cost.
 
 \subsubsection{Complexity analysis}
 
@@ -220,7 +220,7 @@ Under these assumptions, there are two dominating parts in the algorithm within 
 
 The first term is the average cost for safe screening. Delaying next update (increasing $B$) means reusing calculation at the previous update more times for the safe screening and thus reducing the average cost. The second term is the average cost for KKT condition checking. If the old reference is reused too many times, safe rule screening becomes less powerful and the number of KKT condition checks required ($|\mathcal{S}_{k+b}|$) increases.
 
-To better illustrate these two effects, we considered the most naive and simple updating scheme: update the reference periodically after every other $B$ $\lambda$ values. The following plot illustrates the effect of update delay $B$ on $|\mathcal{S}_{k+b}|$ in a real data set solved over a path of $K=100$ $\lambda$-values. The y axis is the proportion of discarded features, calculated as $1-|\mathcal{S}_{k+b}|/p$.
+To better illustrate these two effects, we considered the most naive and simple updating scheme: update the reference after every batch of $B$ $\lambda$ values. The following plot illustrates the effect of update delay $B$ on $|\mathcal{S}_{k+b}|$ in a real data set solved over a path of $K=100$ $\lambda$-values. The y axis is the proportion of discarded features, calculated as $1-|\mathcal{S}_{k+b}|/p$.
 
 \begin{figure}[H]
     \centering
@@ -228,13 +228,13 @@ To better illustrate these two effects, we considered the most naive and simple 
     \label{fig:3.4.1}
 \end{figure}
 
-BEDPP (Basic EDPP) rule is the special case of adaptive EDPP that never updates ($B=K$). When the reference does not get updated for a long time, the safe rule screening will eventually fail to discard any features and make the KKT condition checking cost increase to its maximum $np$. SEDPP rule is the special case that updates at every $\lambda$ value ($B=1$). It remains very powerful along the path, making the KKT condition checking cost small, but the safe screening itself is costly and takes $np$ time per $\lambda$-value. Adaptive EDPP can strike a balance between BEDPP and SEDPP. In this example, simply using fixed update period $B=10$ can reduce the safe screening cost by 90\% compared to SEDPP and reduce the KKT checking cost by 50\% to more than 90\% compared BEDPP.
+BEDPP rule is the special case of adaptive EDPP that never updates ($B=K$). When the reference does not get updated for a long time, the safe rule screening will eventually fail to discard any features and make the KKT condition checking cost increase to its maximum $np$. SEDPP rule is the special case that updates at every $\lambda$ value ($B=1$). It remains very powerful along the path, making the KKT condition checking cost small, but the safe screening itself is costly and takes $np$ time per $\lambda$-value. Adaptive EDPP can strike a balance between BEDPP and SEDPP. In this example, simply using fixed update delay $B=10$ can reduce the safe screening cost by 90\% compared to SEDPP and reduce the KKT checking cost by 50\% to more than 90\% compared BEDPP.
 
-This example also shows the timing of updates should be decided carefully and adaptively. For the first 10 $\lambda$-values, the safe rule stays powerful, which means the old reference is still exploitable. We may want delay the update to reduce average safe screening cost without harming the KKT condition checking cost much. For the last 20 $\lambda$-values however, the screening power drops to 0 quickly, which means the reference becomes useless quickly. Updating more frequently can greatly reduce the KKT condition checking cost with relatively small increase in safe screening cost. Moreover, the performance of adaptive EDPP rule also depends on many factors such as the data, the range of $\lambda$-values and spacing between $\lambda$-values. These suggest that simple updating rules like periodic updating cannot not be consistently efficient and we want a method that can automatically determine whether to update given current performance.
+This example also shows the timing of updates should be decided carefully and adaptively. For the first 10 $\lambda$-values, the safe rule stays powerful, which means the old reference is still exploitable. We may want delay the update to reduce average safe screening cost with little harm to the KKT condition checking cost. For the last 20 $\lambda$-values however, the screening power drops to 0 quickly, which means the reference becomes useless quickly. Updating more frequently can greatly reduce the KKT condition checking cost with a relatively small additional safe screening cost. Moreover, the performance of adaptive EDPP rule also depends on many factors such as the data, the range of $\lambda$-values and spacing between $\lambda$-values. These suggest that simple updating rules like fixed batch updating cannot not be consistently efficient and we want a method that can automatically determine whether to update given current performance.
 
 \subsubsection{Efficient updating algorithm}
 
-From previous example, we assume the average cost is a convex function of distance from last update $B$, which decreases first and then after some optimal value increases again. If we want to minimize the average cost per $\lambda$-value, we need to update when using the old reference for one more $\lambda$-value will increase the average cost. That is, we should update the reference to $\lambda_{k+B}$ when $\bar{T}_k(B+1)>\bar{T}_k(B)$. For practice, we will update the reference to $\lambda_{k+B}$ when $\bar{T}_k(B)>\bar{T}_k(B-1)$ instead, because $\bar{T}_k(B+1)$ cannot be calculated without doing screening at $\lambda_{k+B+1}$. These two conditions should be close and thus this substitution should also be close to optimal. Combined with \eqref{eq:cost}, the latter condition will approximately be:
+From previous example, we assume the average cost is a convex function of update delay $B$, which decreases first and then after some optimal value increases again. If we want to minimize the average cost per $\lambda$-value, we need to update when using the old reference for one more $\lambda$-value will increase the average cost. That is, we should update the reference to $\lambda_{k+B}$ when $\bar{T}_k(B+1)>\bar{T}_k(B)$. For practice, we will update the reference to $\lambda_{k+B}$ when $\bar{T}_k(B)>\bar{T}_k(B-1)$ instead, because $\bar{T}_k(B+1)$ cannot be calculated without doing screening at $\lambda_{k+B+1}$. These two conditions should be close and thus this substitution should also be close to optimal. Combined with \eqref{eq:cost}, the latter condition will approximately be:
 
 \begin{equation}
     \label{eq:crit}
@@ -242,9 +242,9 @@ From previous example, we assume the average cost is a convex function of distan
 \end{equation}
 
 
-This updating condition is a greedy condition that only considers the cost up to the current $\lambda$ value. In practice, we cannot know about future $\lambda$ values so this is the most reasonable condition. In fact, it provides a robust strategy towards three most common scenarios. First, if the screening power stays high, meaning $\mathcal{S}_{k+b}$ is small for all $b$, then the left-hand-side of \eqref{eq:crit} will be small and thus at this point we will not update to further exploit the last update. Second, if the screening power has been high for a while but dropped suddenly, meaning $\mathcal{S}_{k+B}$ is large but $\mathcal{S}_{k+b}$ are mostly small for $b=1,2,...,B-1$, then the left-hand-side of \eqref{eq:crit} will be large and we will update the useless old reference to a new helpful one. Last, if the screening power drops dramatically right after the last update, meaning $\mathcal{S}_{k+b}$ are close to $p$ for $b=2,3,...,B$, then the left-hand-side of \eqref{eq:crit} will be approximately $p-|\mathcal{S}_1|<p$. We will not update although old reference is useless, because if we did, the new update would become useless quickly as well.
+This updating condition is a greedy condition that only considers the cost up to the current $\lambda$ value. In practice, we cannot know about future $\lambda$ values so this is the most reasonable condition. In fact, it provides a robust strategy towards three most common scenarios. First, if the screening power stays high, meaning $\mathcal{S}_{k+b}$ is small for all $b$, then the left-hand-side of \eqref{eq:crit} will be small and thus at this point we will not update to further exploit the old reference. Second, if the screening power has been high for a while but dropped suddenly, meaning $\mathcal{S}_{k+B}$ is large but $\mathcal{S}_{k+b}$ are mostly small for $b=1,2,...,B-1$, then the left-hand-side of \eqref{eq:crit} will be large and we will update the useless old reference to a helpful new one. Last, if the screening power drops dramatically right after the last update, meaning $\mathcal{S}_{k+b}$ are close to $p$ for $b=2,3,...,B$, then the left-hand-side of \eqref{eq:crit} will be approximately $p-|\mathcal{S}_1|<p$. We will not update although old reference is useless, because if we did, the new reference would become useless quickly as well.
 
-This adaptive updating condition fills in the condition on line 11 in Algorithm 1 and forms a complete pathwise lasso algorithm with adaptive hybrid screening. 
+This updating condition fills in the condition on line 11 in Algorithm 1 and forms a complete pathwise lasso algorithm with adaptive hybrid screening. 
 
 
 \section{Extension to other lasso type problems}
@@ -276,7 +276,7 @@ For the sparse logistic regression model \eqref{eq:logis}, let $\lambda_0:=\max_
     \end{split}
 \end{equation}
 
-Under condition \eqref{eq:std} except for standardization for $y$, for any $k=1,2,...,K-1$, assume $\hat{\beta}(\lambda_k)$, $r(\lambda_k)=y-\pi(\hat{\beta}(\lambda_k))$, $x_*\in\{x_j:\hat{\beta}_j(\lambda_k)\neq0\} $, $\theta(\lambda_k)=\{r_i(\lambda_k)\Tilde{y}_i\}_{i=1}^n$ and $\hat{y}(\lambda_k):=\pi(\hat{\beta}(\lambda_k))$ are known. For any $k+b>k$, let
+Under condition \eqref{eq:std} except for standardization for $y$, for any $k=1,2,...,K-1$, assume $\hat{\beta}(\lambda_k)$, $r(\lambda_k)=y-\pi(\hat{\beta}(\lambda_k))$, $x_*\in\{x_j:\hat{\beta}_j(\lambda_k)\neq0\} $, $\theta(\lambda_k)=\{r_i(\lambda_k)\Tilde{y}_i\}_{i=1}^n$ and $\hat{y}(\lambda_k):=\pi(\hat{\beta}(\lambda_k))$ are known. For some next update point $k+B$ and any $b$ s.t. $k<k+b\leq k+B\leq K$, let
 
 \begin{equation}
     R(\lambda_{k+b})=\sqrt{\frac{n}{2}\bigg[g\bigg(\frac{\lambda_{k+b}}{\lambda_k}\theta(\lambda_k)\bigg)-g\bigg(\theta(\lambda_k)\bigg)+\bigg(1-\frac{\lambda_{k+b}}{\lambda_k}\bigg)\bigg(\nabla g\big(\theta(\lambda_k)\big)\bigg)^T\theta(\lambda_k)\bigg]},
@@ -340,14 +340,14 @@ For safe rule screening, we have SEDPP for group lasso\citep{wang2013lasso} and 
 \begin{theorem}[Adaptive EDPP for group lasso]
 For the group lasso problem \eqref{eq:glasso}, let $\lambda_0:=\max_j\frac{||X_g^Ty||_2}{n\sqrt{p_g}}$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$. Under condition \eqref{eq:std} and \eqref{eq:stdg}
     \begin{enumerate}
-        \item For any $k=1,2,...,K-1$, given $\hat{\beta}(\lambda_k)$, $r(\lambda_k)$ and $\hat{y}(\lambda_k):=\sum_{g=1}^GX_g\hat{\beta}_g(\lambda_k)$, then for any  $k+b>k$, $\hat{\beta}_g(\lambda_{k+b})=0$ if
+        \item For any $k=1,2,...,K-1$, given $\hat{\beta}(\lambda_k)$, $r(\lambda_k)$ and $\hat{y}(\lambda_k):=\sum_{g=1}^GX_g\hat{\beta}_g(\lambda_k)$, then for some next update point $k+B$ and any $b$ s.t. $k<k+b\leq k+B\leq K$, $\hat{\beta}_g(\lambda_{k+b})=0$ if
         \begin{equation}
             \begin{split}
                 &\left|\left|2\lambda_{k+b}X_g^Tr(\lambda_k)+(\lambda_k-\lambda_{k+b})\left( X_g^Ty-\frac{y^T\hat{y}(\lambda_k)X_g^T\hat{y}(\lambda_k)}{||\hat{y}(\lambda_k)||_2^2}\right)\right|\right|_2\\
                 &<2n\lambda_k\lambda_{k+b}\sqrt{p_g}-(\lambda_k-\lambda_{k+b})\sqrt{n||y||_2^2-\frac{n(y^T\hat{y}(\lambda_k))^2}{||\hat{y}(\lambda_k)||_2^2}}
             \end{split}
         \end{equation}
-        \item For k=0, i.e., $\lambda_k=\lambda_0$, let $X_*=argmax_{X_g}\frac{||X_g^Ty||_2}{n\sqrt{p_g}}$ with dimension $n\times p_*$, then for any $b>0$, $\hat{\beta}_g(\lambda_{k+b})=0$ if
+        \item For k=0, i.e., $\lambda_k=\lambda_0$, let $X_*=argmax_{X_g}\frac{||X_g^Ty||_2}{n\sqrt{p_g}}$ with dimension $n\times p_*$, then for some next update point $B$ and any $b$ s.t. $0<b\leq B\leq K$, $\hat{\beta}_g(\lambda_{b})=0$ if
         \begin{equation}
         \left|\left|(\lambda_0+\lambda_b)X_g^Ty-(\lambda_0-\lambda_b)X_g^TX_*X_*^Ty\right|\right|_2<2n\lambda_0\lambda_b\sqrt{p_g}-(\lambda_0-\lambda_b)\sqrt{n||y||_2^2-n^2\lambda_0^2p_*}.
     \end{equation}
