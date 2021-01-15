@@ -155,17 +155,19 @@ Compared to one-step methods like BEDPP, the reference solutions are continually
 
 \subsection{Adaptive hybrid rules}
 
-Because HSSR \citep{Zeng2021} have been shown to provide significant speedup compared to safe rules alone, we should also consider adding a strong rule screening after the adaptive EDPP rule screening. The SSR and adpative EDPP rule combined will form our adaptive hybrid rule: Ada-SSR-EDPP.
+Since HSSR \citep{Zeng2021} have been shown to provide significant speedup compared to safe rules alone, we also consider incorporating strong rules into adaptive EDPP screening. We refer to the adaptive hybrid rule formed by combining SSR and adaptive EDPP as Ada-SSR-EDPP.
 
-This combination is not trivial. For ordinary SSR, the quantities $x_j^Tr(\lambda_k)$ used in \eqref{eq:ssr} is already computed in the previous post-convergence check in \eqref{eq:kkt}. However, combined with safe rules, previous post-convergence check only needs to check features that are not discarded at the previous $\lambda$-value. Thus, for features that are discarded at the previous $\lambda$-value but not at the current $\lambda$-value, their corresponding $x_j^Tr(\lambda_k)$ have not been computed yet and thus cannot be used without additional cost. Similar to the idea of BASIL \citep{qian2019fast}, we can also do the strong rule screening adaptively by using the latest $x_j^Tr(\lambda_k)$ available, which is computed by adaptive EDPP rule at the latest update, to reduce the number of required computations.
+This combination is not trivial. For ordinary SSR, the quantity $x_j^Tr(\lambda_k)$ used in \eqref{eq:ssr} is already computed in the previous post-convergence check in \eqref{eq:kkt}. However, when combined with safe rules, the post-convergence check is not applied to all features. For any feature that was safely discarded at the previous $\lambda$, but not the current $\lambda$, the quantity $x_j^Tr(\lambda_k)$ has not been computed yet and thus cannot be used without additional cost. Similar to the idea of BASIL \citep{qian2019fast}, we can also do the strong rule screening adaptively by using the latest $x_j^Tr(\lambda_k)$ available, which is computed by adaptive EDPP rule at the latest update, to reduce the number of required computations.
 
-We are going to combine adaptive EDPP rule and SSR to form the Ada-SSR-EDPP as following. Suppose we have a latest updated reference $\lambda_k$ with $x_j^Tr(\lambda_k)$ computed and want the solution at some following $\lambda_{k+b}$. First, we do adaptive EDPP rule screening. Second, an adaptive SSR screening is carried out on the features that have not been discarded by adaptive EDPP rule and discard features that satisfies: $|x_j^Tr(\lambda_k)/n|<2\lambda_{k+b}-\lambda_k$. Third, a post-convergence check is conducted on the features that were discarded by adaptive SSR but not discarded by adaptive EDPP rule. Then we move on to the next $\lambda_{k+b+1}$ and repeat the same procedure, unless we determine an update is needed.
+We combine adaptive EDPP and SSR to form Ada-SSR-EDPP as follows. Let $\lambda_k$ denote the point in the path at which the EDPP reference has been most recently updated, and
+%$x_j^Tr(\lambda_k)$ computed and
+we want the solution at $\lambda_{k+b}$. First, carry out adaptive EDPP screening. Second, apply adaptive SSR screening to the features that have not been discarded by adaptive EDPP and discard any feature that satisfies $|x_j^Tr(\lambda_k)/n|<2\lambda_{k+b}-\lambda_k$. Third, conduct a post-convergence check on the features that were discarded by adaptive SSR but not discarded by adaptive EDPP. This procedure is then repeated for $\lambda_{k+b+1}$ (unless an EDPP update is applied).
 
-By choosing the same reference for adaptive EDPP rule and adaptive SSR, the quantity $x_j^Tr(\lambda_k)$ only needs to be computed once and can be used by both rules. Also, because adaptive EDPP rule can stay powerful, it keeps the set of features that require post-convergence check small, while because basic EDPP loses power for $\lambda$-values that are far away from $\lambda_0$, post-convergence check for HSSR will be more expensive.
+By choosing the same reference for adaptive EDPP rule and adaptive SSR, the quantity $x_j^Tr(\lambda_k)$ only needs to be computed once and can be used by both rules. Also, because the adaptive EDPP rule remains powerful, the set of features that require post-convergence checking remains small.  This is unlike the original hybrid rules using basic EDPP, where the loss of power in EDPP screening for $\lambda \ll \lambda_0$ leads to expensive post-convergence checking.
 
 \subsection{Pathwise lasso algorithm with adaptive hybrid rule}
 
-In this section, we will show the algorithm to solve the lasso problem over the solution path with pathwise coordinate descent algorithm and our adaptive hybrid screening rule. The pathwise coordinate descent algorithm can be substituted by any other pathwise lasso algorithms and the adaptive EDPP can also be substituted by any other adaptive safe rules in our framework. Note here the first reference chosen will be $\lambda_0$, where the residuals vector $r(\lambda_0)$ is just the response $y$, because all the $\hat{\beta}(\lambda_0)$ are zero. $\{x_j^Ty\}_{j=1}^p$ need to be computed at the beginning and stored for the whole path.
+Below, we provide the explicit algorithm used to solve for the lasso solution path using our proposed adaptive hybrid screening rule. For the numeric experiments in Section~\ref{sec:experiments}, this algorithm was implemented using pathwise coordinate descent, but the algorithm can use any algorithm for solving the lasso problem.  Likewise, any adaptive safe rule could be substituted in place of EDPP screening.  Note here the first reference chosen will be $\lambda_0$, where the residuals vector $r(\lambda_0)$ is just the response $y$, because all the $\hat{\beta}(\lambda_0)$ are zero. The quantity $\{x_j^Ty\}_{j=1}^p$ is therefore computed at the beginning and stored for the whole path.
 
 \begin{algorithm}[H]
     \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}\SetKwInOut{Pre}{Pre-compute}\SetKwInOut{Initialize}{Initialize}
@@ -182,7 +184,7 @@ In this section, we will show the algorithm to solve the lasso problem over the 
         \Initialize{$\hat{\beta}(\lambda_{k})=\hat{\beta}(\lambda_{k-1}), r(\lambda_{k})=r(\lambda_{k-1})$}
         
         \Repeat{Post-convergence check passes}{
-            Pathwise lasso algorithm with only features in $\mathcal{R}_{k}$ and with warm start $\hat{\beta}(\lambda_{k}), r(\lambda_{k})$, until converge. 
+            Solve lasso problem using only features in $\mathcal{R}_{k}$, with warm start $\hat{\beta}(\lambda_{k}), r(\lambda_{k})$. 
             
             Save new $\hat{\beta}(\lambda_{k}), r(\lambda_{k})$.
             
@@ -357,7 +359,7 @@ For the group lasso problem \eqref{eq:glasso}, let $\lambda_0:=\max_j\frac{||X_g
 Similar to Adaptive EDPP rule, three expensive computations are $\{X_g^Ty\}_{g=1}^G$, $\{X_g^TX_*\}_{g=1}^G$ and $\{X_g^Tr(\lambda_k)\}_{g=1}^G$. The first and second only need to be computed once for the whole solution path. The last only needs to be computed at the time of each update with cost $O(np)$. The adaptive EDPP for group lasso, combined with the previous SSR, forms the Ada-SSR-EDPP for group lasso.
 
 \section{Experiments}
-\label{sec:5}
+\label{sec:experiments}
 
 In this section conduct experiments solving lasso model on both simulated data sets and real data sets, to show our proposed adaptive hybrid rule screening method outperforms previous screening method such as SSR, SEDPP, HSSR and Slores. Active-set cycling in \ref{sec:active} is always used with all screening methods because it can be easily combined with any screening methods with no extra cost.
 
