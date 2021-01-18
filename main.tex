@@ -83,7 +83,7 @@ Compared to strong rules, safe rules are never violated. Features can be discard
 The EDPP rules are derived from the dual formulation of the lasso problem and provide a bound for the residual vector $r(\lambda)$. Then using the KKT conditions, some features can be guaranteed to have zero coefficients and be discarded safely. Two forms of the EDPP rule, basic EDPP (BEDPP) and sequential EDPP (SEDPP)\citep{wang2013lasso}, were proposed and under the standardization \eqref{eq:std} can be simplified in the following theorems \citep{Zeng2021}:
 
 \begin{theorem}[BEDPP]
-    For the lasso problem \eqref{eq:lasso}, let $\lambda_0:=\max_j|x_j^Ty/n|$ and $x_*=argmax_{x_j}|x_j^Ty/n|$. Under \eqref{eq:std} and for any $\lambda\in(0,\lambda_0]$, we have $\hat{\beta}_j(\lambda)=0$ if
+    For the lasso problem \eqref{eq:lasso}, let $\lambda_0:=\max_j|x_j^Ty/n|$ and $x_*=\arg \max_{x_j}|x_j^Ty/n|$. Under \eqref{eq:std} and for any $\lambda\in(0,\lambda_0]$, we have $\hat{\beta}_j(\lambda)=0$ if
     \begin{equation}
         \label{eq:bedpp}
         |(\lambda_0+\lambda)x_j^Ty-(\lambda_0-\lambda)sign(x_*^Ty)\lambda_0x_j^Tx_*|<2n\lambda_0\lambda-(\lambda_0-\lambda)\sqrt{n||y||_2^2-n^2\lambda_0^2}.
@@ -250,24 +250,24 @@ We use this updating condition at line 11 in Algorithm~\ref{alg:path} to form a 
 \section{Extension to other lasso type problems}
 \label{sec:4}
 
-The structure of the adaptive hybrid rule is easily extendable to any lasso problems that have corresponding sequential strong rule and sequential safe rule. After an adaptive safe rule is built, we can automatically apply the adaptive strong rule and the adaptive update algorithm to form a pathwise algorithm with adaptive hybrid screening. We are going to derive the extensions to two lasso type problems and show these extensions improve computation efficiency.
+The structure of the adaptive hybrid rule is easily extendable to any lasso problems that have corresponding sequential strong and safe rules. After an adaptive safe rule is built, we can automatically apply the adaptive strong rule and adaptive update algorithm to form a pathwise algorithm with adaptive hybrid screening. Here, we derive extensions to two lasso-type problems and show these extensions improve computation efficiency.
 
 \subsection{Adaptive safe rule for sparse logistic regression}
 
-The sparse logistic regression model can be defined as:
-
+Consider the sparse logistic regression model where estimates of the coefficient vector $\beta$ and intercept $\beta_0$ are obtained by minimizing
 \begin{equation}
     \label{eq:logis}
-    \hat{\beta}(\lambda)=\underset{(\beta,\beta_0)\in \mathbb{R}^p\times\mathbb{R}^1}{\mathrm{argmin}}-\frac{1}{n}\sum_{i=1}^n\{y_i\log\pi_i(\beta)+(1-y_i)\log(1-\pi_i(\beta))\}+\lambda||\beta||_1,
+    %\hat{\beta}(\lambda)=\underset{(\beta,\beta_0)\in \mathbb{R}^p\times\mathbb{R}^1}{\mathrm{argmin}}-
+  \frac{1}{n} \sum_{i=1}^n \big\{y_i\log\pi_i(\beta) + (1-y_i)\log(1 -\pi_i(\beta))\big\} + \lambda||\beta||_1,
 \end{equation}
-where $\pi(\beta)=\{\pi_i(\beta)\}_{i=1}^n=\{p(y_i=1|x_{i1},x_{i2},...,x_{ip})\}_{i=1}^n=\{e^{\eta_i(\beta)}/(1+e^{\eta_i(\beta)})\}_{i=1}^n$ is the predicted value vector and $\eta(\beta)=X\beta+\beta_0\mathbf{1}$ is the linear function. $X$ are still the $n\times p$ standardized feature matrix but in this model the $y\in\{0,1\}^n$ is an unstandardized binary response vector. $\beta$ is still the $p\times1$ coefficient vector but we also need a $\beta_0$ as the intercept.
+where $\pi(\beta)=\{\pi_i(\beta)\}_{i=1}^n=\{p(y_i=1|x_{i1},x_{i2},...,x_{ip})\}_{i=1}^n=\{e^{\eta_i(\beta)}/(1+e^{\eta_i(\beta)})\}_{i=1}^n$ is the predicted value vector and $\eta(\beta)=X\beta+\beta_0\mathbf{1}$ is the linear function. The quantity $X$ is still the $n\times p$ standardized feature matrix but in this model $y\in\{0,1\}^n$ is an unstandardized binary response vector; unlike linear regression, the intercept cannot be eliminated through centering in logistic regression.
 
-We can use SSR to do the strong rule screening with a small change according to the KKT condition. The residual vector now is $r(\lambda_k)=y-\pi(\hat{\beta}(\lambda_k))$. Then the SSR discards the $j$-th feature at $\lambda_{k+1}$ if \eqref{eq:ssr} holds.
+Sequential strong rules require only a small change for logistic regression. The residual vector now is $r(\lambda_k)=y-\pi(\hat{\beta}(\lambda_k))$. Then the SSR discards the $j$-th feature at $\lambda_{k+1}$ if \eqref{eq:ssr} holds.
 
-For safe rule screening, instead of EDPP rules, Slores (sparse logistic regression screening rule)\citep{wang2014safe} is used. It was proposed as a one-step rule but it can be extended as a sequential rule with some minimal change and thus can be extended as adaptive rule. Let $\Tilde{y}=2y-1\in\{-1,1\}^n$, $r(\lambda_k)=y-\pi(\hat{\beta}(\lambda_k))$.
+Safe rules require more significant modification, as EDPP no longer applies. In its place, we use Slores \citep[sparse logistic regression screening rule,][]{wang2014safe}. It was proposed as a one-step rule but can be extended to an adaptive rule with minimal changes. %Let $\Tilde{y}=2y-1\in\{-1,1\}^n$, $r(\lambda_k)=y-\pi(\hat{\beta}(\lambda_k))$.
 
 \begin{theorem}[Adaptive Slores]
-For the sparse logistic regression model \eqref{eq:logis}, let $\lambda_0:=\max_j|x_j^Ty/n|$, $\Tilde{y}=2y-1\in\{-1,1\}^n$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$. $\forall\theta\in(0,1)^n$, let 
+For the sparse logistic regression model \eqref{eq:logis}, let $\lambda_0:=\max_j|x_j^Ty/n|$, $\Tilde{y}=2y-1\in\{-1,1\}^n$, and suppose $\lambda_0>\lambda_1>...>\lambda_K$. For all $\theta\in(0,1)^n$, let 
 
 \begin{equation}
     \begin{split}
@@ -276,85 +276,81 @@ For the sparse logistic regression model \eqref{eq:logis}, let $\lambda_0:=\max_
     \end{split}
 \end{equation}
 
-Under condition \eqref{eq:std} except for standardization for $y$, for any $k=1,2,...,K-1$, assume $\hat{\beta}(\lambda_k)$, $r(\lambda_k)=y-\pi(\hat{\beta}(\lambda_k))$, $x_*\in\{x_j:\hat{\beta}_j(\lambda_k)\neq0\} $, $\theta(\lambda_k)=\{r_i(\lambda_k)\Tilde{y}_i\}_{i=1}^n$ and $\hat{y}(\lambda_k):=\pi(\hat{\beta}(\lambda_k))$ are known. For some next update point $k+B$ and any $b$ s.t. $k<k+b\leq k+B\leq K$, let
-
+Under the conditions on $X$ given in \eqref{eq:std}, for any $k=1,2,...,K-1$, assume $\hat{\beta}(\lambda_k)$, $r(\lambda_k)=y-\pi(\hat{\beta}(\lambda_k))$, $x_*\in\{x_j:\hat{\beta}_j(\lambda_k)\neq0\} $, $\theta(\lambda_k)=\{r_i(\lambda_k)\Tilde{y}_i\}_{i=1}^n$ and $\hat{y}(\lambda_k):=\pi(\hat{\beta}(\lambda_k))$ are known. For some next update point $k+B$ and any $b$ s.t. $k<k+b\leq k+B\leq K$, let
 \begin{equation}
-    R(\lambda_{k+b})=\sqrt{\frac{n}{2}\bigg[g\bigg(\frac{\lambda_{k+b}}{\lambda_k}\theta(\lambda_k)\bigg)-g\bigg(\theta(\lambda_k)\bigg)+\bigg(1-\frac{\lambda_{k+b}}{\lambda_k}\bigg)\bigg(\nabla g\big(\theta(\lambda_k)\big)\bigg)^T\theta(\lambda_k)\bigg]},
+  R(\lambda_{k+b}) = \sqrt{\frac{n}{2} \bigg[g\bigg(\frac{\lambda_{k+b}}{\lambda_k}\theta(\lambda_k)\bigg) - g\bigg(\theta(\lambda_k)\bigg) + \bigg(1 - \frac{\lambda_{k+b}}{\lambda_k}\bigg) \bigg(\nabla g\big(\theta(\lambda_k)\big)\bigg)^T\theta(\lambda_k)\bigg]},
 \end{equation}
-
-$d(\lambda_{k+b})=\sqrt{n}(\lambda_k-\lambda_{k+b})/R(\lambda_{k+b})$. For $\xi = -1,1$ and $j=1,2,...,p$,
+and $d(\lambda_{k+b})=\sqrt{n}(\lambda_k-\lambda_{k+b})/R(\lambda_{k+b})$. For $\xi = -1,1$ and $j=1,2,...,p$,
 
 \begin{enumerate}
-    \item If $-\xi sign(x_*^Ty)x_j^Tx_*\geq nd(\lambda_{k+b})$, then
+    \item If $-\xi \sign(x_*^Ty)x_j^Tx_*\geq nd(\lambda_{k+b})$, then
     
     \begin{equation}
         T_\xi(\lambda_{k+b},x_j;r(\lambda_k))=\sqrt{n}R(\lambda_{k+b})-\xi x_j^Tr(\lambda_k);
     \end{equation}
     
-    \item If $-\xi sign(x_*^Ty)x_j^Tx_*< nd(\lambda_{k+b})$, then
+    \item If $-\xi \sign(x_*^Ty)x_j^Tx_*< nd(\lambda_{k+b})$, then
     
     \begin{equation}
-        T_\xi(\lambda_{k+b},x_j;r(\lambda_k))=R(\lambda_{k+b})\sqrt{n+nu_\xi^2-2\xi u_\xi sign(x_*^Ty)x_j^Tx_*}-nu_\xi(\lambda_k-\lambda_{k+b})-\xi x_j^Tr(\lambda_k),
+        T_\xi(\lambda_{k+b},x_j;r(\lambda_k))=R(\lambda_{k+b})\sqrt{n+nu_\xi^2-2\xi u_\xi \sign(x_*^Ty)x_j^Tx_*}-nu_\xi(\lambda_k-\lambda_{k+b})-\xi x_j^Tr(\lambda_k),
     \end{equation}
     where
     \begin{align}
         u_\xi&=\frac{-\xi a_1+\sqrt{\Delta}}{2a_2},\\
         a_0&=(x_j^Tx_*)^2-n^2d^2(\lambda_{k+b}),\nonumber\\
-        a_1&=-2n\,sign(x_*^Ty)x_j^Tx_*\big(1-d^2(\lambda_{k+b})\big),\nonumber\\
+        a_1&=-2n\,\sign(x_*^Ty)x_j^Tx_*\big(1-d^2(\lambda_{k+b})\big),\nonumber\\
         a_2&=n^2\big(1-d^2(\lambda_{k+b})\big),\nonumber\\
         \Delta&=a_1^2-4a_0a_1.\nonumber
     \end{align}
 \end{enumerate}
 
 Then $\hat{\beta}_j(\lambda_{k+b})=0$ if
-        \begin{equation}
-            \max_{\xi=\pm1} T_\xi(\lambda_{k+b},x_j;r(\lambda_k))
-        \end{equation}
+  \begin{equation}
+    \max_{\xi=\pm1} T_\xi(\lambda_{k+b},x_j;r(\lambda_k))
+  \end{equation}
+  \pb{This appears to be missing something. This is not a true/false expression, it's just a number.}
 \end{theorem}
 
-When computing the adaptive Slores, $\{x_j^Ty\}_{j=1}^p$ needs to be computed only once, stored and reused for the whole solution path. $\{x_j^Tx_*\}_{j=1}^p$ can be reused unless $x_*$ changes. Other than those two terms, the only term that requires expensive $O(np)$ computation is $\{x_j^Tr(\lambda_k)\}_{j=1}^p$, which only needs to be computed at the time of each update. Thus algorithm 1 for adaptive hybrid rule can be done with Slores rule instead of EDPP rule to form Ada-SSR-Slores that does screening for sparse logistic regression model.
+When computing the adaptive Slores, $\{x_j^Ty\}_{j=1}^p$ needs to be computed only once, after which it can be stored and reused for the whole solution path. The quantity $\{x_j^Tx_*\}_{j=1}^p$ can be similarly reused unless $x_*$ changes, which happens if the corresponding regression coefficient drops out of the model; this is relatively rare, but can happen. Other than those two terms, the only term that requires expensive $O(np)$ computations is $\{x_j^Tr(\lambda_k)\}_{j=1}^p$, which needs to be computed only when we update the reference solution. Thus Algorithm~\ref{alg:path} can be applies to the sparse logistic model, with Slores replacing EDPP. We refer to the resulting algorithm as Ada-SSR-Slores.
 
 \subsection{Adaptive safe rule for group lasso}
 
-The group lasso problem \citep{yuan2006model} can be defined as:
-
+The group lasso model \citep{yuan2006model} estimates $\beta$ by minimizing
 \begin{equation}
     \label{eq:glasso}
-    \hat{\beta}(\lambda) = \underset{\beta\in \mathbb{R}^p}{\mathrm{argmin}}\frac{1}{2n}\bigg|\bigg|y-\sum_{g=1}^GX_g\beta_g\bigg|\bigg|_2^2+\lambda\sum_{g=1}^G\sqrt{p_g}||\beta_g||_2,
+    %\hat{\beta}(\lambda) = \underset{\beta\in \mathbb{R}^p}{\mathrm{argmin}}
+    \frac{1}{2n}\bigg|\bigg|y - \sum_{g=1}^GX_g\beta_g\bigg|\bigg|_2^2 + \lambda\sum_{g=1}^G\sqrt{p_g}||\beta_g||_2,
 \end{equation}
-where $\beta=(\beta_1^T,...,\beta_G^T)^T$, $X_g$ is a $n\times p_g$ sub-matrix consisting of columns of $X$ corresponding to features in group $g$, $g=1,2,...,G$. Besides standardization in \eqref{eq:std}, we apply an addition level of standardization at the group level\citep{breheny2015group}:
+where $\beta=(\beta_1^T,...,\beta_G^T)^T$, $X_g$ is a $n\times p_g$ sub-matrix consisting of columns of $X$ corresponding to the features in group $g$, $g=1,2,...,G$. In addition to the standardization conditions given in \eqref{eq:std}, we apply an additional standardization at the group level \citep{breheny2015group}:
 
 \begin{equation}
     \label{eq:stdg}
     X_g^TX_g=nI_{p_g\times p_g},\qquad g=1,2,...,G.
 \end{equation}
 
-According to the KKT condition, we can use SSR to do strong rule screening. Given $r(\lambda_k)=y-\sum_{g=1}^GX_g\hat{\beta}_g(\lambda_k)$, we discard features in the $g$-th group at $\lambda_{k+1}$ if:
-
-\begin{equation}
-    \bigg|\bigg|\frac{1}{n}X_g^Tr(\lambda_k)\bigg|\bigg|_2<\sqrt{p_g}(2\lambda_{k+1}-\lambda_k).
+We can again use the KKT conditions to derive sequential strong rules. Given $r(\lambda_k)=y-\sum_{g=1}^GX_g\hat{\beta}_g(\lambda_k)$, we discard features in the $g$-th group at $\lambda_{k+1}$ if
+\begin{equation} \bigg|\bigg|\frac{1}{n}X_g^Tr(\lambda_k)\bigg|\bigg|_2<\sqrt{p_g}(2\lambda_{k+1}-\lambda_k).
 \end{equation}
-
-For safe rule screening, we have SEDPP for group lasso\citep{wang2013lasso} and we can extend it the adaptive EDPP rule for group lasso.
+For safe rule screening, SEDPP rules for group lasso have been derived previously \citep{wang2013lasso}. Below, we extend these results to the adaptive case tend them to it the adaptive EDPP rule for group lasso.
 
 \begin{theorem}[Adaptive EDPP for group lasso]
-For the group lasso problem \eqref{eq:glasso}, let $\lambda_0:=\max_j\frac{||X_g^Ty||_2}{n\sqrt{p_g}}$. Suppose we have a sequence of $\lambda$ values $\lambda_0>\lambda_1>...>\lambda_K$. Under condition \eqref{eq:std} and \eqref{eq:stdg}
+  For the group lasso problem \eqref{eq:glasso}, suppose $\lambda_0>\lambda_1>...>\lambda_K$, with $\lambda_0:= \max_j ||X_g^Ty||_2 / (n\sqrt{p_g})$. Under conditions \eqref{eq:std} and \eqref{eq:stdg},
     \begin{enumerate}
         \item For any $k=1,2,...,K-1$, given $\hat{\beta}(\lambda_k)$, $r(\lambda_k)$ and $\hat{y}(\lambda_k):=\sum_{g=1}^GX_g\hat{\beta}_g(\lambda_k)$, then for some next update point $k+B$ and any $b$ s.t. $k<k+b\leq k+B\leq K$, $\hat{\beta}_g(\lambda_{k+b})=0$ if
         \begin{equation}
             \begin{split}
                 &\left|\left|2\lambda_{k+b}X_g^Tr(\lambda_k)+(\lambda_k-\lambda_{k+b})\left( X_g^Ty-\frac{y^T\hat{y}(\lambda_k)X_g^T\hat{y}(\lambda_k)}{||\hat{y}(\lambda_k)||_2^2}\right)\right|\right|_2\\
-                &<2n\lambda_k\lambda_{k+b}\sqrt{p_g}-(\lambda_k-\lambda_{k+b})\sqrt{n||y||_2^2-\frac{n(y^T\hat{y}(\lambda_k))^2}{||\hat{y}(\lambda_k)||_2^2}}
+                &<2n\lambda_k\lambda_{k+b}\sqrt{p_g}-(\lambda_k-\lambda_{k+b})\sqrt{n||y||_2^2-\frac{n(y^T\hat{y}(\lambda_k))^2}{||\hat{y}(\lambda_k)||_2^2}}.
             \end{split}
         \end{equation}
-        \item For k=0, i.e., $\lambda_k=\lambda_0$, let $X_*=argmax_{X_g}\frac{||X_g^Ty||_2}{n\sqrt{p_g}}$ with dimension $n\times p_*$, then for some next update point $B$ and any $b$ s.t. $0<b\leq B\leq K$, $\hat{\beta}_g(\lambda_{b})=0$ if
+        \item For k=0, i.e., $\lambda_k=\lambda_0$, let $X_*=\arg \max_{X_g} ||X_g^Ty||_2 / (n\sqrt{p_g})$ with dimension $n\times p_*$, then for some next update point $B$ and any $b$ s.t. $0<b\leq B\leq K$, $\hat{\beta}_g(\lambda_{b})=0$ if
         \begin{equation}
         \left|\left|(\lambda_0+\lambda_b)X_g^Ty-(\lambda_0-\lambda_b)X_g^TX_*X_*^Ty\right|\right|_2<2n\lambda_0\lambda_b\sqrt{p_g}-(\lambda_0-\lambda_b)\sqrt{n||y||_2^2-n^2\lambda_0^2p_*}.
     \end{equation}
     \end{enumerate}
 \end{theorem}
 
-Similar to Adaptive EDPP rule, three expensive computations are $\{X_g^Ty\}_{g=1}^G$, $\{X_g^TX_*\}_{g=1}^G$ and $\{X_g^Tr(\lambda_k)\}_{g=1}^G$. The first and second only need to be computed once for the whole solution path. The last only needs to be computed at the time of each update with cost $O(np)$. The adaptive EDPP for group lasso, combined with the previous SSR, forms the Ada-SSR-EDPP for group lasso.
+Similar to the Adaptive EDPP rule, there are three expensive computations: $\{X_g^Ty\}_{g=1}^G$, $\{X_g^TX_*\}_{g=1}^G$, and $\{X_g^Tr(\lambda_k)\}_{g=1}^G$. The first two only need to be computed once for the whole solution path. The final term needs to be computed only when the reference solution is updated, with cost $O(np)$. The adaptive EDPP for group lasso, combined with the previous SSR, forms the Ada-SSR-EDPP for group lasso.
 
 \section{Experiments}
 \label{sec:experiments}
