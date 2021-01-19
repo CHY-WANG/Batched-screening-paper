@@ -23,7 +23,7 @@ This manuscript provides a brief review of existing feature screening rules in S
 
 \begin{itemize}
     \item A new feature screening framework (Section 3.1,3.2), which updates the reference for screening along the grid of $\lambda$ values on any combination of strong screening rules and safe screening rules, which can generate a family of more efficient and scalable screening rules, compared to previous screening rules that are either sequential or one-step.
-    \item Three specific applications of this framework, Ada-SSR-EDPP, Ada-SSR-Slores and Ada-SSR-EDPP for group lasso, for fitting lasso-penalized linear regression and logistic regression models, respectively (Section 3.4,4.1,4.2).
+    \item Three specific applications of this framework, Ada-SSR-EDPP, Ada-SSR-Slores and Ada-SSR-EDPP \pb{do we need these abbreviations?  We never really use them.  We just use AHS in the figures/tables} for group lasso, for fitting lasso-penalized linear regression and logistic regression models, respectively (Section 3.4,4.1,4.2).
     \item An algorithm to determine when to update to a new reference $\lambda$ value for best efficiency (Section \ref{sec:adaptive}).
     \item Simulation studies (Section~\ref{sec:sim}) and real data analysis (Section~\ref{sec:real-data}) under a variety of scenarios, including testing data sets larger than memory, which showed that the proposed algorithms outperform other approaches in all cases, with substantial speed up.
     \item The Ada-SSR-SEDPP and Ada-SSR-Slores were implemented and added as new options to the publicly accessible \textbf{R} package \textbf{biglasso} \citep{zeng2017biglasso}, which was used to carry out the analyses in this manuscript.
@@ -354,26 +354,26 @@ Similar to the Adaptive EDPP rule, there are three expensive computations: $\{X_
 \section{Experiments}
 \label{sec:experiments}
 
-In this section conduct experiments solving lasso model on both simulated data sets and real data sets, to show our proposed adaptive hybrid rule screening method outperforms previous screening method such as SSR, SEDPP, HSSR and Slores. Active-set cycling in \ref{sec:active} is always used with all screening methods because it can be easily combined with any screening methods with no extra cost.
+In this section, we demonstrate that our proposed adaptive hybrid screening method outperforms other methods through numerical experiments involving both simulated and real dats. Active-set cycling (Section~\ref{sec:active}) is used in combination with all methods because it can be easily combined with any screening method at no extra cost.
 
-The adaptive hybrid rule screening is implemented in the \textbf{R} package \textbf{biglasso} and we will use this package for our experiment. Compared to traditional packages that solve lasso problem, such as \textbf{glmnet}, \textbf{biglasso} focuses on efficiently solving lasso problem with high-dimensional data sets that have a large number of features. First, it utilized the memory-mapping techniques that stores the data set on the disk and reads in only the part of the data necessary for model solving. Second, it applied screening rules to reduce both the computation cost and memory cost as we have discussed. These two features together help \textbf{biglasso} to outperform other packages. We will show that our new screening method will result in a new version of the package that shows significant improvement compared to previous version. 
+The proposed adaptive hybrid screening approach is implemented in the R package \textbf{biglasso} and we use this package in our experiments. Compared to other packages that fit lasso models, such as \textbf{glmnet}, \textbf{biglasso} focuses on data sets that are too large to fit into memory. In particular, it utilizes memory-mapping techniques that store the data on disk and read in only the portion necessary for model solving. Furthermore, its screening rules emphasize both the computation and memory costs as we have discussed. The adaptive screening approach proposed in this manuscript led to the development of a new version of the package, \textbf{biglasso} 1.4, that is significantly faster than previous versions.
 
-For all the following experiments, we will solve the lasso model along a path of $100$ $\lambda$-values with the maximum $\lambda_0=\max_j|x_j^Ty/n|$ determined by the data, the minimum $\lambda_K=0.05\lambda_0$ and the rest $\lambda$-values equally spaced between on log scale.
+For all the following experiments, we solve the lasso model along a path of $100$ $\lambda$-values with the maximum $\lambda_0=\max_j|x_j^Ty/n|$ determined by the data, the minimum $\lambda_L=0.05\lambda_0$ and the intermediate values equally spaced on a log scale. Note that $L$ denotes the number of $\lam$ points that the lasso problem is solved along the coefficient path.  \pb{is this inconsistent? Don't we use K everywhere else in the paper?}
 
 \subsection{Simulation study}
 \label{sec:sim}
 
 \subsubsection{Lasso model}
 
-In this part, we will solve the standard lasso problem \eqref{eq:lasso} with different screening methods: Active-set Cycling (AC) alone, SSR, SEDPP, HSSR and adaptive hybrid rule (AHR). The AHR is Ada-SSR-EDPP which uses EDPP as the safe rule. Note that AC is always incorporated with all other screening rules, so using AC alone can be considered as a baseline for this comparison.
+We begin by comparing screening methods for solving the standard lasso problem \eqref{eq:lasso}: Active-set Cycling (AC) alone, SSR, SEDPP, HSSR and adaptive hybrid rule (AHR; referred to as Ada-SSR-EDPP earlier in the paper). Note that because AC is incorporated into all of the other screening rules, AC alone can be considered as the baseline for this comparison.
 
-The data will be simulated from the model: $y=X\beta+0.1\epsilon$. $X$ and $\epsilon$ are sampled i.i.d from $N(0,1)$. $\beta$ will have $s$ randomly selected elements equally spaced between $[-\beta_{max},\beta_{max}]$ and the rest $p-s$ elements are zeros. The lasso model is solved along a grid of $L$ $\lambda$-values equally spaced on the log scale between $[\lambda_{\max},\lambda_{\min}]$. Each setting is replicated $10$ times to calculate the average time cost. By default we set $p=10,000$, $n=1,000$, $s=20$, $\beta_{max}=1$, $L=100$, $\lambda_{\min}/\lambda_{\max}=0.05$. We consider the following cases where one of the variables above is varying at a time:
+The data is simulated from the model: $y=X\beta+0.1\epsilon$. The elements of $X$ and $\epsilon$ are sampled i.i.d from $N(0,1)$. The coefficient vector $\beta$ contains $s$ randomly selected elements equally spaced between $[-\beta_{\max},\beta_{\max}]$, with the remaining $p-s$ elements equal to zero. Each setting is replicated $10$ times to calculate the average time needed to solve the coefficient path. By default we set $p=10,000$, $n=1,000$, $s=20$, $\beta_{\max}=1$, $L=100$, $\lambda_{\min}/\lambda_{\max}=0.05$. We consider the following cases where one of the variables above is varying at a time:
 
 \begin{enumerate}
     \item \textbf{Varying number of features:} $p$ from $1,000$ to $100,000$.
     \item \textbf{Varying sample size:} $n$ from $200$ to $10,000$.
-    \item \textbf{Varying signal strength:} $\beta_{max}$ from $0.05$ to $1$.
-    \item \textbf{Varying sparsity:} $s$ from $10$ to $300$ while controlling total signal size $\beta_{max}\times s=20$.
+    \item \textbf{Varying signal strength:} $\beta_{\max}$ from $0.05$ to $1$.
+    \item \textbf{Varying sparsity:} $s$ from $10$ to $300$ while controlling total signal size $\beta_{\max}\times s=20$.
     \item \textbf{Varying number of grid points:}  $L$ from $20$ to $1000$.
     \item \textbf{Varying range of grid:}  $\lambda_{\min}/\lambda_{\max}$ from $0.5$ to $0.002$.
     \item \textbf{Varying number of grid points $L$ with fixed spacing:} $L$ from $20$ to $1000$ while controlling $\lambda_{\min}/\lambda_{\max}$ so that the spacing of the $\lambda$-values on the log scale is the same.
@@ -381,7 +381,7 @@ The data will be simulated from the model: $y=X\beta+0.1\epsilon$. $X$ and $\eps
 
 \begin{figure}[h]
     \centering
-    \includegraphics[scale = 0.59]{plots/511.pdf}    \caption{Comparing speed of screening methods for lasso model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to AC. First column: varying number of features $p$. Second column: varying sample size $n$. Third column: varying signal strength $\beta_{max}$. Fourth column: varying sparsity $s$.}
+    \includegraphics[scale = 0.59]{plots/511.pdf}    \caption{Comparing speed of screening methods for lasso model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to AC. First column: varying number of features $p$. Second column: varying sample size $n$. Third column: varying signal strength $\beta_{\max}$. Fourth column: varying sparsity $s$.}
     \label{fig:5.1.1a}
 \end{figure}
 
@@ -391,21 +391,21 @@ The data will be simulated from the model: $y=X\beta+0.1\epsilon$. $X$ and $\eps
     \label{fig:5.1.1b}
 \end{figure}
 
-Figure 2 and Figure 3 shows the computation time (top row) and relative computation time compared to AC (bottom row) of solving lasso problem with different screening methods. The AHR is uniformly the fastest under all settings. Most of the time it is 2-8 times faster than any other screening methods. It outperforms other methods especially when the data set is large (large $n$ or large $p$), the active features are sparse among all features (small $s$) or the grid of $\lambda$-value is fine (large $L$ or $\lambda_{\min}/\lambda_{\max}$). 
+Figure 2 and Figure 3 shows the computation time (top row) and relative computation time compared to AC (bottom row) of solving lasso problem with different screening methods. AHR is uniformly the fastest under all settings, typically 2-8 times faster than any other screening method. The difference is largest when the data set is large (large $n$ or large $p$), the active features are highly sparse (small $s$) or the grid of $\lambda$-value is fine (large $L$ or $\lambda_{\min}/\lambda_{\max}$). \pb{For example, when $L=1000$, AHR is XXXX times faster than any other approach.}
 
-There are several atypical cases when AHR's advantage over other methods is not as significant: (1) $p$ or $n$ is small. This corresponds a small data set and computation will be less challenging. (2) $\beta_{max}$ is close to zero. This means all the nonzero coefficients are close to zero and are hard to be distinguished from zero coefficients. This can cause problem for any statistical learning methods. (3) $s$ is large. In this case, the underlying model that generate the data set is not sparse in the sense that proportion of nonzero coefficients is not small. Lasso model would not be the optimal model to analyse such an data set. (4) $L$ is small. In this case, only a coarse grid of $\lambda$-values are considered. The $\lambda$-value selected in this case may be far from optimal.
+There are, however, cases when AHR's advantage over other methods is not as significant: (1) $p$ or $n$ is small. For small data sets, computation is less challenging and screening rules play a smaller role. (2) $\beta_{\max}$ is close to zero. When the nonzero coefficients are close to zero, they are hard to distinguish from each other. This tends to cause problems for any statistical learning method. (3) $s$ is large. In this case, the solution is ``dense'' and screening rules have less ability to leverage sparsity to computational advantage. (4) $L$ is small. In this case, only a coarse grid of $\lambda$-values are considered, providing less information for an adaptive approach to use. A practical downside to choosing a small $L$ is that the selected $\lam$ may be far from optimal.
 
-We also tried varying other factors, for example, varying the correlation among features in $X$, varying the sparsity with fixed signal strength or varying the minimum $\lambda$-value $\lambda_K$. The AHR also shows uniform advantage over other method when those factors vary in reasonable ranges.
+We also tried varying other factors, for example: the correlation among features in $X$, sparsity with fixed signal strength, and the minimum value $\lambda_K$. The results of these experiments were very similar, with AHR continuing to show a uniform advantage over other methods.
 
 \subsubsection{Sparse logistic regression model}
 
-In this part, we will replicate the previous experiment, expect that now we will solve the sparse logistic regression model with the following screening methods: SSR, HSSR with Slores as the safe rule (HSlores), and the adaptive method Ada-SSR-Slores with Slores as the safe rule (ASlores). SSR is implemented in all of the three screening methods so it will be considered as the baseline.
+We now turn our attention to the sparse logistic regression model, comparing sequential strong rules (SSR), hybrid rules using Slores as the safe rule (HSlores), and adaptive screening using Slores as the safe rule (ASlores). SSR is implemented in all three methods and will be considered the baseline.
 
-The data will be simulated from the model: $y=\mathbf{1}\{X\beta+0.1\epsilon >0\}$. $X$ and $\epsilon$ are sampled i.i.d from $N(0,1)$. $\beta$ will have $s$ randomly selected elements equally spaced between $[-\beta_{max},\beta_{max}]$ and the rest $p-s$ elements are zeros. Each setting is replicated $10$ times to calculate the average time cost. We consider the same 7 cases we have considered in the previous experiment.
+The data are simulated from the model: $y=\mathbf{1}\{X\beta+0.1\epsilon >0\}$. As before, $X$ and $\epsilon$ are sampled i.i.d from $N(0,1)$, while $\beta$ has $s$ randomly selected elements equally spaced between $[-\beta_{\max},\beta_{\max}]$. Each setting is replicated $10$ times to calculate the average time cost. We consider the same 7 cases as in the previous experiment.
 
 \begin{figure}[h]
     \centering
-    \includegraphics[scale = 0.59]{plots/512.pdf}    \caption{Comparing speed of screening methods for sparse logistic regression model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to SSR. First column: varying number of features $p$. Second column: varying sample size $n$. Third column: varying signal strength $\beta_{max}$. Fourth column: varying sparsity $s$.}
+    \includegraphics[scale = 0.59]{plots/512.pdf}    \caption{Comparing speed of screening methods for sparse logistic regression model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to SSR. First column: varying number of features $p$. Second column: varying sample size $n$. Third column: varying signal strength $\beta_{\max}$. Fourth column: varying sparsity $s$.}
     \label{fig:5.1.2a}
 \end{figure}
 
@@ -415,8 +415,7 @@ The data will be simulated from the model: $y=\mathbf{1}\{X\beta+0.1\epsilon >0\
     \label{fig:5.1.2b}
 \end{figure}
 
-Figure 4 and 5 show the computation time (top row) and relative computation time compared to SSR (bottom row) of solving sparse logistic regression problem with different screening methods. ASlores is also uniformly faster than other methods and this improvement is significant except for some atypical cases motioned before.
-
+Figure 4 and 5 show the computation time (top row) and relative computation time compared to SSR (bottom row) of solving sparse logistic regression problem with different screening methods. The overall pattern is the same as for sparse linear regression, with adaptive screening uniformly faster than all other methods. The speedup is smaller in magnitude than for linear regression because the Slores rule is less powerful than EDPP. Nevertheless, the improvement in speed is still dramatic in many cases \pb{provide number here for, say, $L=500$}.
 
 \subsection{Real data analysis}
 \label{sec:real-data}
