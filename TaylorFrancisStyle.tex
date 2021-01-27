@@ -1,0 +1,74 @@
+\documentclass[]{interact}
+\usepackage{epstopdf}% To incorporate .eps illustrations using PDFLaTeX, etc.
+\usepackage[caption=false]{subfig}% Support for small, `sub' figures and tables
+%\usepackage[nolists,tablesfirst]{endfloat}% To `separate' figures and tables from text if required
+%\usepackage[doublespacing]{setspace}% To produce a `double spaced' document if required
+%\setlength\parindent{24pt}% To increase paragraph indentation when line spacing is doubled
+
+\usepackage[numbers,sort&compress]{natbib}% Citation support using natbib.sty
+\bibpunct[, ]{[}{]}{,}{n}{,}{,}% Citation support using natbib.sty
+\renewcommand\bibfont{\fontsize{10}{12}\selectfont}% Bibliography support using natbib.sty
+\makeatletter% @ becomes a letter
+\def\NAT@def@citea{\def\@citea{\NAT@separator}}% Suppress spaces between citations using natbib.sty
+\makeatother% @ becomes a symbol again
+
+\theoremstyle{plain}% Theorem-like structures provided by amsthm.sty
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+\newtheorem{notation}{Notation}
+
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[ruled,vlined, linesnumbered]{algorithm2e}
+\usepackage[english]{babel}
+\usepackage[nottoc]{tocbibind}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, citecolor=black, linkcolor=., urlcolor=cyan}
+% Custom commands / shortcuts
+\providecommand{\sign}{\textrm{sign}}
+\providecommand{\pb}[1]{\textcolor{red}{#1}}
+\providecommand{\lam}{\lambda}
+
+\title{Adaptive Hybrid Screening for Efficient Lasso Optimization}
+%\author{Chuyi Wang\\Department of Statistics and Actuarial Sciences\\University of Iowa
+%  \and
+%  Patrick Breheny\\Department of Biostatistics\\University of Iowa}
+  
+\author{
+\name{Chuyi Wang\textsuperscript{a}\thanks{CONTACT Chuyi Wang. Email: chuyi-wang@uiowa.edu} and Patrick Breheny\textsuperscript{b}}
+\affil{\textsuperscript{a}Department of Statistics and Actuarial Sciences, University of Iowa, USA; \\\textsuperscript{b}Department of Biostatistics, University of Iowa, USA}
+}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Lasso type models are popular in statistics, especially for high-dimensional data. Typical practice is to tune the size of lasso penalty along a path of values. Due to modern data collection techniques, researchers need to analyse data with millions of features, which brings a great need for an efficient lasso optimization algorithm. Feature screening techniques have proven to be powerful for this need, because they can discard features and lead to a model with much less features. In this paper, we develop an adaptive hybrid screening framework where screening is carried out adpatively along the path of tuning parameter values. It reuses previous solutions in the path and reduces unhelpful heavy computations. It is a flexible framework that can be easily extended to different types of lasso models. Two applications for the standard lasso model and the sparse logistic model are shown as examples. We perform simulation study and real data study in a wide range of scenarios and the adaptive hybrid methods outperform other state-of-the-art method significantly and uniformly, with the greatest speedup in the most challenging scenarios.
+\end{abstract}
+
+\begin{keywords}
+Lasso; feature Screening; safe screening; solution path; large-scale sparse learning
+\end{keywords}
+
+\input{main}
+
+\renewcommand\bibname{References}
+\bibliographystyle{tfnlm}
+\bibliography{ref}
+
+\end{document}
