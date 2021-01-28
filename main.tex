@@ -11,9 +11,9 @@ The lasso model has several attractive properties compared to least squares regr
 
 Because the optimal value of $\lambda$ is not known in advance, typical practice is to solve for $\beta$ along a sequence of values of the tuning parameter $\lambda$, known as the solution path. While efficiently algorithms have been developed \citep{friedman2007pathwise} for the solution path, modern data collection and storage techniques allow researchers to measure an increasingly large number of features, which introduce additional computational challenges. In particular, it may not be possible to store the feature matrix, which can require many GBs of memory to store, in memory. One can resolve this problem by using a memory mapping package such as \textbf{bigmemory}, which allows us to store the feature matrix on disk and read it portions of it as needed; however, this results in frequent reading from disk, which is extremely slow compared to other parts of the algorithm and becomes a bottleneck with respect to the computational burden of fitting lasso models on very large data sets.
 
-One promising technique to address this challenge is feature screening. The lasso model solution is sparse in the sense that most coefficients will be exactly zero; for these ``inactive'' coefficients we do not need their associated features.  In theory, if we knew which coefficients were nonzero at each value of $\lambda$, we could read into memory only those features and leave the remaining features on disk. In reality, we cannot know this prior to fitting the model -- however, through the clever use of feature screening rules, we can greatly reduce the number of times inactive features are read into memory, thereby minimizing the computational burden. There are many screening techniques where the solution obtained after screening is guaranteed to be the global optimum if one exists, and in this paper we focus only on this type of screening. In what follows, we refer to features left on disk as ``discarded'' features, although it is worth clarifying that this is not a permanent decision.  In particular, a feature can be discarded at one value of $\lambda$ but included in the list of potentially active features at other values of $\lambda$.
+One promising technique to address this challenge is feature screening. The lasso model solution is sparse in the sense that most coefficients will be exactly zero; for these \quotes{inactive} coefficients we do not need their associated features.  In theory, if we knew which coefficients were nonzero at each value of $\lambda$, we could read into memory only those features and leave the remaining features on disk. In reality, we cannot know this prior to fitting the model -- however, through the clever use of feature screening rules, we can greatly reduce the number of times inactive features are read into memory, thereby minimizing the computational burden. There are many screening techniques where the solution obtained after screening is guaranteed to be the global optimum if one exists, and in this paper we focus only on this type of screening. In what follows, we refer to features left on disk as \quotes{discarded} features, although it is worth clarifying that this is not a permanent decision.  In particular, a feature can be discarded at one value of $\lambda$ but included in the list of potentially active features at other values of $\lambda$.
 
-There are two important categories of feature screening rules: ``strong'' rules \citep{Tibshirani2012, qian2019fast}, which occasionally incorrectly discard some active features, and ``safe'' rules \citep{ghaoui2010safe,wang2013lasso,xiang2012fast, xiang2011learning}, which are guaranteed never to do so.  As one might expect, strong rules tend to be easier to calculate; however, because mistakes are possible, one must add a post-convergence check to ensure that no features were incorrectly discarded. This check is not necessary with safe rules. However, safe rules are considerably less powerful at discarding features than strong rules. More recently, hybrid approaches \citep{Zeng2021} combining the two types of rules have been shown to be more efficient than either type of rule alone.
+There are two important categories of feature screening rules: \quotes{strong} rules \citep{Tibshirani2012, qian2019fast}, which occasionally incorrectly discard some active features, and \quotes{safe} rules \citep{ghaoui2010safe,wang2013lasso,xiang2012fast, xiang2011learning}, which are guaranteed never to do so.  As one might expect, strong rules tend to be easier to calculate; however, because mistakes are possible, one must add a post-convergence check to ensure that no features were incorrectly discarded. This check is not necessary with safe rules. However, safe rules are considerably less powerful at discarding features than strong rules. More recently, hybrid approaches \citep{Zeng2021} combining the two types of rules have been shown to be more efficient than either type of rule alone.
 
 Safe screening rules can be implemented in one of two ways. Sequential rules do screening at each $\lambda$ value along the path using the previous solution as the reference, so they require heavy computation but are relatively powerful. One-step only use the solution at the beginning of the path as the reference. As a result, they require far less computational burden but they lose efficacy as the thus are faster but they cannot remain powerful along the path for long because they don't utilize previous solution.
 
@@ -41,7 +41,7 @@ Standardization ensures that the penalty is applied equally to all features, eve
 
 Typical practice when fitting lasso models is to solve for $\hat{\beta}(\lambda)$ along a decreasing sequence of $L+1$ values of $\lambda$: $\lambda_0 > \lambda_1 > \cdots > \lambda_L$.  As we discuss shortly, we set $\lambda_0=\max_j|x_j^Ty/n|$ throughout; this ensures that $\hat{\beta}(\lambda_0)=0$, making it a natural point from which to start.
 
-The goal of pathwise algorithms is to solve for this entire solution path.  This can be done efficiently by using ``warm starts'': using previous points on the path as initial values, as these are likely to be relatively close to the solution.  For the model at any $\lambda$-value $\lambda_{l+1}$, letting $r(\lambda_{l+1}) \equiv y-X\hat{\beta}(\lambda_{l+1})$ denote the vector of residuals, the solution $\hat{\beta}(\lambda_{l+1})$ can be computed using the previous solution $\hat{\beta}(\lambda_l)$ as the initial value in the algorithm. Pathwise coordinate descent is a algorithm that takes advantage of this idea and will be used as the lasso algorithm for the rest of the paper.
+The goal of pathwise algorithms is to solve for this entire solution path.  This can be done efficiently by using \quotes{warm starts}: using previous points on the path as initial values, as these are likely to be relatively close to the solution.  For the model at any $\lambda$-value $\lambda_{l+1}$, letting $r(\lambda_{l+1}) \equiv y-X\hat{\beta}(\lambda_{l+1})$ denote the vector of residuals, the solution $\hat{\beta}(\lambda_{l+1})$ can be computed using the previous solution $\hat{\beta}(\lambda_l)$ as the initial value in the algorithm. Pathwise coordinate descent is a algorithm that takes advantage of this idea and will be used as the lasso algorithm for the rest of the paper.
 
 In convex optimization, the Karush-Kuhn-Tucker (KKT) conditions are both necessary and sufficient for any optimal solution.  Screening rules take advantage of these KKT conditions in order to discard inactive coefficients.  For the lasso, the KKT conditions governing the optimal solution $\hat{\beta}(\lambda)$ are given by
 \begin{equation}
@@ -62,16 +62,16 @@ After computing the solution, a post-convergence KKT conditions check is perform
 
 \subsection{Strong Rules}
 
-Each post-convergence check requires $O(np)$ operations and is therefore costly to repeat when violations occur.  These violations are inevitable in active-set cycling, as they occur every time a feature is added to the model.  Sequential strong rules (SSR) \citep{Tibshirani2012} have the basic idea of active-set cycling, but reduce violations by retaining features that are ``close'' to entering the model.
+Each post-convergence check requires $O(np)$ operations and is therefore costly to repeat when violations occur.  These violations are inevitable in active-set cycling, as they occur every time a feature is added to the model.  Sequential strong rules (SSR) \citep{Tibshirani2012} have the basic idea of active-set cycling, but reduce violations by retaining features that are \quotes{close} to entering the model.
 
 Given the solution $\hat{\beta}(\lambda_l)$ and residual vector $r(\lambda_l)=y-X\hat{\beta}(\lambda_l)$ at $\lambda_l$, the SSR discards the $j$-th feature at $\lambda_{l+1}$ if:
 \begin{equation}
   \label{eq:ssr}
   |x_j^Tr(\lambda_l)/n|<2\lambda_{l+1}-\lambda_l.
 \end{equation}
-The SSR is derived from the KKT condition and the ``unit-slope'' assumption that the size of the slope of $x_j^Tr(\lambda)/n$ over $\lambda$ is bounded by 1. 
+The SSR is derived from the KKT condition and the \quotes{unit-slope} assumption that the size of the slope of $x_j^Tr(\lambda)/n$ over $\lambda$ is bounded by 1. 
 
-The biggest problem of SSR is that the ``unit-slope'' assumption may not hold and thus discarded features are not guaranteed to have zero coefficients. As with AC, a post-convergence KKT check is therefore needed for the discarded features to make sure their coefficients are truly zero. If violations occur, we again need to refit the model, adding the violating features and repeating the post-convergence check. Similar to the procedure in AC, there are a finite number of features that can be added, so the procedure will end after finite repetitions. Moreover, previous studies have shown that violations are rare, so the additional $O(np)$ cost for repeating a KKT check hardly ever arises.
+The biggest problem of SSR is that the \quotes{unit-slope} assumption may not hold and thus discarded features are not guaranteed to have zero coefficients. As with AC, a post-convergence KKT check is therefore needed for the discarded features to make sure their coefficients are truly zero. If violations occur, we again need to refit the model, adding the violating features and repeating the post-convergence check. Similar to the procedure in AC, there are a finite number of features that can be added, so the procedure will end after finite repetitions. Moreover, previous studies have shown that violations are rare, so the additional $O(np)$ cost for repeating a KKT check hardly ever arises.
 
 SSR possesses the nice property that the quantity $x_j^Tr(\lambda_l)/n$ needed for SSR screening \eqref{eq:ssr} at $\lambda_{l+1}$ has already been calculated during post-convergence checking at $\lambda_l$ in \eqref{eq:kkt}. As this is the only computationally intensive aspect of SSR screening, and SSR violations are rare, its computational cost is roughly $O(npL)$.
 
@@ -224,7 +224,7 @@ To better illustrate these two effects, we considered a simple updating scheme: 
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.6\textwidth]{plots/batchsizes.pdf}    \caption{Proportion of features rejected by screening rules vs index of $\lambda$-values for different update delay.}
+    \includegraphics[width=0.6\textwidth]{plots/batchsizes.eps}    \caption{Proportion of features rejected by screening rules vs index of $\lambda$-values for different update delay.}
     \label{fig:batchsizes}
 \end{figure}
 
@@ -382,19 +382,19 @@ The data is simulated from the model: $y=X\beta+0.1\epsilon$. The elements of $X
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=\textwidth]{plots/511.pdf}    \caption{Comparing speed of screening methods for lasso model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to AC. First column: varying number of features $p$. Second column: varying sample size $n$. Third column: varying signal strength $\beta_{\max}$. Fourth column: varying sparsity $s$.}
+    \includegraphics[width=\textwidth]{plots/511.eps}    \caption{Comparing speed of screening methods for lasso model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to AC. First column: varying number of features $p$. Second column: varying sample size $n$. Third column: varying signal strength $\beta_{\max}$. Fourth column: varying sparsity $s$.}
     \label{fig:5.1.1a}
 \end{figure}
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.82\textwidth]{plots/511b.pdf}    \caption{Comparing speed of screening methods for lasso model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to AC. First column: Varying number of grid points $L$. Second column: Varying range of grid $\lambda_{\min}/\lambda_{\max}$. Third column: Varying number of grid points $L$ with fixed spacing.}
+    \includegraphics[width=0.82\textwidth]{plots/511b.eps}    \caption{Comparing speed of screening methods for lasso model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to AC. First column: Varying number of grid points $L$. Second column: Varying range of grid $\lambda_{\min}/\lambda_{\max}$. Third column: Varying number of grid points $L$ with fixed spacing.}
     \label{fig:5.1.1b}
 \end{figure}
 
 Figure~\ref{fig:5.1.1a} and~\ref{fig:5.1.1b} shows the computation time (top row) and relative computation time compared to AC (bottom row) of solving lasso problem with different screening methods. AHR is uniformly the fastest under all settings, typically 2-8 times faster than any other screening method. The difference is largest when the data set is large (large $n$ or large $p$), the active features are highly sparse (small $s$) or the grid of $\lambda$-value is fine (large $L$ or $\lambda_{\min}/\lambda_{\max}$). For example, when $L=1000$, AHR is 18 times faster than any other approach.
 
-There are, however, cases when AHR's advantage over other methods is not as significant: (1) $p$ or $n$ is small. For small data sets, computation is less challenging and screening rules play a smaller role. (2) $\beta_{\max}$ is close to zero. When the nonzero coefficients are close to zero, they are hard to distinguish from each other. This tends to cause problems for any statistical learning method. (3) $s$ is large. In this case, the solution is ``dense'' and screening rules have less ability to leverage sparsity to computational advantage. (4) $L$ is small. In this case, only a coarse grid of $\lambda$-values are considered, providing less information for an adaptive approach to use. A practical downside to choosing a small $L$ is that the selected $\lam$ may be far from optimal.
+There are, however, cases when AHR's advantage over other methods is not as significant: (1) $p$ or $n$ is small. For small data sets, computation is less challenging and screening rules play a smaller role. (2) $\beta_{\max}$ is close to zero. When the nonzero coefficients are close to zero, they are hard to distinguish from each other. This tends to cause problems for any statistical learning method. (3) $s$ is large. In this case, the solution is \quotes{dense} and screening rules have less ability to leverage sparsity to computational advantage. (4) $L$ is small. In this case, only a coarse grid of $\lambda$-values are considered, providing less information for an adaptive approach to use. A practical downside to choosing a small $L$ is that the selected $\lam$ may be far from optimal.
 
 We also tried varying other factors, for example: the correlation among features in $X$, sparsity with fixed signal strength, and the minimum value $\lambda_L$. The results of these experiments were very similar, with AHR continuing to show a uniform advantage over other methods.
 
@@ -406,13 +406,13 @@ The data are simulated from the model: $y=\mathbf{1}\{X\beta+0.1\epsilon >0\}$. 
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=\textwidth]{plots/512.pdf}    \caption{Comparing speed of screening methods for sparse logistic regression model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to SSR. First column: varying number of features $p$. Second column: varying sample size $n$. Third column: varying signal strength $\beta_{\max}$. Fourth column: varying sparsity $s$.}
+    \includegraphics[width=\textwidth]{plots/512.eps}    \caption{Comparing speed of screening methods for sparse logistic regression model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to SSR. First column: varying number of features $p$. Second column: varying sample size $n$. Third column: varying signal strength $\beta_{\max}$. Fourth column: varying sparsity $s$.}
     \label{fig:5.1.2a}
 \end{figure}
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.82\textwidth]{plots/512b.pdf}    \caption{Comparing speed of screening methods for sparse logistic regression model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to SSR. First column: Varying number of grid points $L$. Second column: Varying range of grid $\lambda_{\min}/\lambda_{\max}$. Third column: Varying number of grid points $L$ with fixed spacing.}
+    \includegraphics[width=0.82\textwidth]{plots/512b.eps}    \caption{Comparing speed of screening methods for sparse logistic regression model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to SSR. First column: Varying number of grid points $L$. Second column: Varying range of grid $\lambda_{\min}/\lambda_{\max}$. Third column: Varying number of grid points $L$ with fixed spacing.}
     \label{fig:5.1.2b}
 \end{figure}
 
@@ -425,14 +425,14 @@ The previous section compared screening methods under different scenarios using 
 
 \begin{enumerate}
     \item \textbf{Breast cancer gene expression data
-(GENE):} this data has expression measurements of $p=17,322$ genes from $n=536$ patients. The response is the expression measurement of the gene BRCA1, which has been identified to be related to risk of breast cancer.
+(GENE, \url{https://myweb.uiowa.edu/pbreheny/data/bcTCGA.html}):} this data has expression measurements of $p=17,322$ genes from $n=536$ patients. The response is the expression measurement of the gene BRCA1, which has been identified to be related to risk of breast cancer.
     \item \textbf{MNIST handwritten image data
-(MNIST):} this data set has $60,000$ images in the training set and $10,000$ images in the testing set. Each image is a $28\times 28=784$ pixels image of handwritten digits. We use the training set to form a $n=784\times p=60,000$ feature matrix, treating pixels as samples and images as features. Then an image from the testing set is randomly selected as the response.
-    \item \textbf{ Cardiac fibrosis genome-wide association data
-(GWAS):} this data set has $p=660,496$ single nucleotide
+(MNIST, \url{http://yann.lecun.com/exdb/mnist}):} this data set has $60,000$ images in the training set and $10,000$ images in the testing set. Each image is a $28\times 28=784$ pixels image of handwritten digits. We use the training set to form a $n=784\times p=60,000$ feature matrix, treating pixels as samples and images as features. Then an image from the testing set is randomly selected as the response.
+    \item \textbf{Cardiac fibrosis genome-wide association data
+(GWAS, \url{https://arxiv.org/abs/1607.05636}):} this data set has $p=660,496$ single nucleotide
 polymorphisms (SNPs) collected from $n=313$ human hearts. The response is the log of the ratio of cardiomyocytes to fibroblasts in the heart tissue, which is associated with heart failure.
     \item \textbf{Subset of New York Times bag-of-words data
-(NYT):} the raw data set is a $300,000\times 102,660$ matrix, each row being a document and each column being number of occurrence of a specific word in those documents. We selected $n=5,500$ documents by removing documents with low word counts. Then $55,000$ words are selected as the features and a randomly selected word is the response.
+(NYT, \url{https://archive.ics.uci.edu/ml/datasets/Bag+of+Words}):} the raw data set is a $300,000\times 102,660$ matrix, each row being a document and each column being number of occurrence of a specific word in those documents. We selected $n=5,500$ documents by removing documents with low word counts. Then $55,000$ words are selected as the features and a randomly selected word is the response.
 
 \end{enumerate}
 
@@ -458,7 +458,7 @@ AHR & \textbf{0.71 (0.01)} & \textbf{1.15 (0.02)} & \textbf{8.80 (0.03)} & \text
 \label{Tab:real}
 \end{table}
 
-AHR again outperforms other screening methods on all data sets, faster than the fastest of the rest by 70\% to 200\% \pb{how about ``faster than other methods by factor ranging from 70\% to 630\%''? To me, ``faster than the fastest of the rest'' seems more complicated than necessary}. Also note that the performance of SEDPP varies considerably for the MNIST and NYT data sets, where the response is randomly selected in each replication, indicating that the speed of SEDPP is sensitive to the data. AHR is built with SEDPP as the safe rule but does not share this issue of instability because it can adaptively adjust itself according the performance of the safe rule.
+AHR again outperforms other screening methods on all data sets, faster than other methods by factor ranging from 70\% to 630\%. Also note that the performance of SEDPP varies considerably for the MNIST and NYT data sets, where the response is randomly selected in each replication, indicating that the speed of SEDPP is sensitive to the data. AHR is built with SEDPP as the safe rule but does not share this issue of instability because it can adaptively adjust itself according the performance of the safe rule.
 
 \subsection{Big Data Performance}
 
