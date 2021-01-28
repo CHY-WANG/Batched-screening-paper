@@ -155,7 +155,7 @@ Compared to one-step methods like BEDPP, the reference solutions are continually
 
 \subsection{Adaptive hybrid rules}
 
-Since HSSR \citep{Zeng2021} have been shown to provide significant speedup compared to safe rules alone, we also consider incorporating strong rules into adaptive EDPP screening. We form an adaptive hybrid rule combining SSR and adaptive EDPP.
+Since HSSR \citep{Zeng2021} has been shown to provide significant speedup compared to safe rules alone, we also consider incorporating strong rules into adaptive EDPP screening, forming an adaptive hybrid rule combining SSR and adaptive EDPP.
 
 This combination is not trivial. For ordinary SSR, the quantity $x_j^Tr(\lambda_l)$ used in \eqref{eq:ssr} is already computed in the previous post-convergence check in \eqref{eq:kkt}. However, when combined with safe rules, the post-convergence check is not applied to all features. For any feature that was safely discarded at the previous $\lambda$, but not the current $\lambda$, the quantity $x_j^Tr(\lambda_l)$ has not been computed yet and thus cannot be used without additional cost. Similar to the idea of BASIL \citep{qian2019fast}, we can also do the strong rule screening adaptively by using the latest $x_j^Tr(\lambda_l)$ available, which is computed by adaptive EDPP rule at the latest update, to reduce the number of required computations.
 
@@ -350,7 +350,7 @@ For safe rule screening, SEDPP rules for group lasso have been derived previousl
     \end{enumerate}
 \end{theorem}
 
-Similar to the Adaptive EDPP rule, there are three expensive computations: $\{X_g^Ty\}_{g=1}^G$, $\{X_g^TX_*\}_{g=1}^G$, and $\{X_g^Tr(\lambda_l)\}_{g=1}^G$. The first two only need to be computed once for the whole solution path. The final term needs to be computed only when the reference solution is updated, with cost $O(np)$. The adaptive EDPP for group lasso, combined with the previous SSR, forms adaptive hybrid rule for group lasso.
+Similar to the Adaptive EDPP rule, there are three expensive computations: $\{X_g^Ty\}_{g=1}^G$, $\{X_g^TX_*\}_{g=1}^G$, and $\{X_g^Tr(\lambda_l)\}_{g=1}^G$. The first two only need to be computed once for the whole solution path. The final term needs to be computed only when the reference solution is updated, with cost $O(np)$. The adaptive EDPP for group lasso, combined with the previous SSR, forms our adaptive hybrid rule for group lasso.
 
 \section{Experiments}
 \label{sec:experiments}
@@ -416,12 +416,12 @@ The data are simulated from the model: $y=\mathbf{1}\{X\beta+0.1\epsilon >0\}$. 
     \label{fig:5.1.2b}
 \end{figure}
 
-Figure 4 and 5 show the computation time (top row) and relative computation time compared to SSR (bottom row) of solving sparse logistic regression problem with different screening methods. The overall pattern is the same as for sparse linear regression, with adaptive screening uniformly faster than all other methods. The speedup is smaller in magnitude than for linear regression because the Slores rule is less powerful than EDPP. Nevertheless, the improvement in speed is still dramatic in many cases, for example, 4 times faster than any other methods when $L=1,000$.
+Figure 4 and 5 show the computation time (top row) and relative computation time compared to SSR (bottom row) of solving sparse logistic regression problem with different screening methods. The overall pattern is the same as for sparse linear regression, with adaptive screening uniformly faster than all other methods. The speedup is smaller in magnitude than for linear regression because the Slores rule is less powerful than EDPP. Nevertheless, the improvement in speed is still dramatic in many cases. For example, when $L=1,000$, AHR was 4 times faster than any other method.
 
 \subsection{Real data analysis}
 \label{sec:real-data}
 
-In previous sections, we used simulation to compare the screening methods under different scenario. In real world, data may be generated from different complicated models that cannot be covered by a simulation study, so in this section we are going to test the screening methods for lasso model on some real data sets to make sure our comparison conclusion is representative in real world. Following the studies of \citep{wang2013lasso, xiang2016screening, Zeng2021}, we will test the lasso screening methods on the following data sets:
+The previous section compared screening methods under different scenarios using simulated data. Data generating mechanisms in the real world, however, are much more complex than those of a simulation. In this section, we compare screening methods for lasso models on a variety of real data sets to ensure the conclusions of the previous section are representative of real world data. Following the studies of \citep{wang2013lasso, xiang2016screening, Zeng2021}, we test the lasso screening methods on the following data sets:
 
 \begin{enumerate}
     \item \textbf{Breast cancer gene expression data
@@ -437,7 +437,7 @@ polymorphisms (SNPs) collected from $n=313$ human hearts. The response is the lo
 \end{enumerate}
 
 
-For 1 and 3, we replicate the experiment 10 times to take the average. For 2 and 4, since in each experiment the response is randomly selected, we replicate the experiment 50 times to get an accurate estimate. Table 1 compares the average computation time for different screening methods in these data sets.
+For GENE and GWAS, we replicate the experiment 10 times to take the average. For data sets MNIST and NYT, because the response is randomly selected, we replicate the experiment 50 times to get an accurate estimate. Table 1 compares the average computation time for different screening methods in these data sets.
 
 \begin{table}[H]
 \centering
@@ -455,31 +455,28 @@ AHR & \textbf{0.71 (0.01)} & \textbf{1.15 (0.02)} & \textbf{8.80 (0.03)} & \text
 \caption{Average computing time in second (standard error) for solving the lasso model}
 \end{table}
 
-AHR again outperforms other screening methods on all data sets, faster than the fastest of the rest by 70\% to 200\%. Also note that the performance of SEDPP varies a lot in MNIST and NYT data sets, where the response is randomly selected in each replication, suggesting that the speed of SEDPP is sensitive to the data. AHR is built with SEDPP as the safe rule but does not have the problem of instability, because it can adaptively adjust itself according the performance of the safe rule.
-
-
+AHR again outperforms other screening methods on all data sets, faster than the fastest of the rest by 70\% to 200\% \pb{how about ``faster than other methods by factor ranging from 70\% to 630\%''? To me, ``faster than the fastest of the rest'' seems more complicated than necessary}. Also note that the performance of SEDPP varies considerably for the MNIST and NYT data sets, where the response is randomly selected in each replication, indicating that the speed of SEDPP is sensitive to the data. AHR is built with SEDPP as the safe rule but does not share this issue of instability because it can adaptively adjust itself according the performance of the safe rule.
 
 \subsection{Big data performance}
 
-Ultra high dimensional big data that is too large to be fit into the memory is the real challenge and is the place where the help of a good screening method is wanted most. We test the screening methods on a data from a genome-wide association study on 1,080 subjects with heart conditions. We want to identify genetic factors that are associated with some heart condition severity measurements. After imputing and filtering, there are $p=11,830,470$ SNP measurements used as the features. The size of the file storing the feature matrix is 96G and we conduct the test on a machine with 32G RAM. We choose a larger $\lambda_{\min} =0.5\lambda_{\max}$ to avoid having more features selected than the number of observations, where the solution becomes not unique.
+Ultra high dimensional big data that is too large to fit into memory represents the greatest challenge and the scenario where the help of a good screening method is needed most. To test the screening methods described in this paper, we used data from the Genetic Risk Assessment of Defibrillator Events study (GRADE, \url{https://www.clinicaltrials.gov/ct2/show/NCT02045043}). Genome-wide genetic data were collected for 1,080 subjects diagnosed with cardiomyopathy and who had undergone surgery to receive an implantable cardioverter defibrillator in the past 5 years. After imputation using the Haplotype Reference Consortium as a reference genome and filtering for quality control \citep{Das2016}, there were $p=11,830,470$ SNPs which used as features. The size of the file storing the feature matrix is 96G and we conduct the test on a machine with 32G RAM. We chose a relatively large $\lambda_{\min} =0.5\lambda_{\max}$ to avoid having more features selected than the number of observations, at which point the solution is no longer unique.
 
-For the lasso model, we choose the Left ventricular ejection fraction (LVEF) as the response. It measures the proportion of blood being pumped out of the left ventricle of the heart (the main pumping chamber) with each contraction. Lower value means severer heart failure. $n=973$ out of 1,080 subjects have this measurement and they will be considered as the sample for this analysis. The experiment is replicated 5 times to take the average, shown in the Table 2.
+A variety of clinical data was collected on these individuals. To examine the performance of screening rules for linear regression, we focused on left ventricular ejection fraction (LVEF) as the response. LVEF measures the proportion of blood being pumped out of the left ventricle of the heart with each contraction. Lower values are associated with more severe heart disease. LVEF data was available for $n=973$ subjects and they will be considered as the sample for this analysis. The experiment is replicated 5 times, and results are shown in Table~\ref{Tab:lvef}.
 
 \begin{table}[H]
 \centering
 \begin{tabular}{l|l|l|l|l|l}
 \hline
-
 Screening method & AC\,\,\,\,\,\,\,\,\,    & SSR\,\,\,\,\,\,   & SEDPP & HSSR\,\,\,  & AHR\,\,\,\,\,\,  \\
 \hline
 Time & 183.6 & 78.6 & 78.6 & 84.9 & 13.6\\
 Standard error & 0.43 & 0.65 & 0.20 & 0.48 & 0.15
  \\\hline
 \end{tabular}
-\caption{Average computing time in minute and standard error for solving the lasso model on big data}
+\caption{Average computing time in minutes and standard error for the LVEF analysis (lasso-penalized linear regression).\label{Tab:lvef}}
 \end{table}
 
-For the sparse logistic model, we choose the New York Heart Association (NYHA) Functional Classification as the response. It classifies patients by how much they are limited during physical activity. The classes range from 1 to 4 so we combine class 1 and 2 as the negative class with no or slight limitation of physical activity and class 3 and 4 as the positive class with substantial limitation. $n=1008$ out of 1,080 subjects have this measurement and they will be considered as the sample for this analysis. The experiment is replicated 5 times to take the average, shown in the Table 3.
+For the sparse logistic model, we choose the New York Heart Association (NYHA) Functional Classification as the response, which classifies patients on the basis of limitations to their physical activity. The classes range from 1 to 4, which we dichotomize into patients with no or slight limitation of physical activity (classes 1 and 2) and patients with substantial limitations (classes 3 and 4). The NYHA classification was available for $n=1008$ subjects, who form the sample for the logistic regression analysis. The experiment is replicated 5 times to take the average and results are shown in Table~\ref{Tab:nyha}.
 
 \begin{table}[H]
 \centering
@@ -492,19 +489,16 @@ Time & 82.7 & 107.5 & 51.7 \\
 Standard error & 0.10 & 0.67 & 0.17 
  \\\hline
 \end{tabular}
-\caption{Average computing time in minute and standard error for solving the sparse logistic model on big data}
+\caption{Average computing time in minutes and standard error for the NYHA analysis (lasso-penalized logistic regression).\label{Tab:nyha}}
 \end{table}
 
-For both the lasso model and the sparse logistic model, the purposed adaptive hybrid methods outperforms other methods with great reduction in computation time. On the lasso model, the adaptive hybrid method achieves 6 times speedup.
+For both analyses, the proposed adaptive hybrid methods result in substantial reductions in computation time. In particular, for the lasso analysis of LVEF, the adaptive hybrid method reduces computation time from nearly an hour and a half to under 15 minutes, a 6-fold speedup.
 
 \section{Conclusion}
 \label{sec:6}
 
-In this paper, we proposed the novel adaptive hybrid screening framework for efficient lasso type problem optimization over the solution path. The key idea is cleverly reusing the reference for screening along the path until updating to a new reference is beneficial for computation cost.  We developed three instances in this framework: Ada-SSR-EDPP, Ada-SSR-Slores and Ada-SSR EDPP for group lasso, for 3 different types of lasso problems. We tested the first two in extensive numeric experiments on both simulated data and real data, including a ultra big data that does not fit into the memory. Our proposed rules outperformed other state-of-the-art screening methods uniformly, especially in the most challenging scenarios. 
+In this paper, we have proposed a novel adaptive hybrid screening framework for efficient lasso-type optimization over the solution path. The key idea is to judiciously reuse the reference for screening along the path until the point where updating to a new reference is beneficial.  We developed three instances of algorithms using this framework, for standard lasso-penalized linear regression, for sparse logistic regression, and for the group lasso. Extensive numeric experiments on both simulated and real data, including a very large data set that cannot fit into memory, demonstrate that our proposed algorithms outperform other state-of-the-art screening methods uniformly, in many cases several times faster that competing approaches.
 
-Ada-SSR-EDPP and Ada-SSR-Slores have been implemented in  publicly accessible \textbf{R} packages \textbf{biglasso}\citep{zeng2017biglasso}, which was used to carry out the numeric experiments.
+The algorithms for lasso-penalized linear and logistic regression have been implemented in the publicly accessible R package \textbf{biglasso} \citep{zeng2017biglasso}, which was used to carry out the numeric experiments.
 
-Our adaptive hybrid screening framework also has great flexibility for extensions. It can substitute coordinate descent with any other faster lasso problem optimizer, SSR with any other stronger strong rules and the adaptive updating algorithm with any other cleverer algorithm. Most importantly, most sequential safe rules can be modified as adaptive safe rules and fit into our framework. This lead to several future extensions. First, if a stronger safe rule is developed, our framework can better exploit its power and lead to an even faster algorithm. Second, there are still many lasso type problems that do not have corresponding sequential safe rules, such as sparse Cox regression, sparse Poisson regression and sparse SVM. Once they are developed, they can be fit into our framework to produce efficient algorithm for other types of lasso problem.
-
-
-
+The proposed adaptive hybrid screening framework is flexible and can be extended in several ways. The framework is general and does not require a specific algorithm, strong rule, or safe rule. As faster algorithms to solve the lasso problem, better safe rules, or improved strong rules are developed, these can be directly plugged into the adaptive hybrid framework with a corresponding improvement in computational efficiency. Nevertheless, there are still several lasso type problems without sequential safe rules, such as sparse Cox regression, sparse Poisson regression, and sparse support vector machines. As safe rules for these problems are developed, they can be readily fit into our framework to produce efficient algorithms as well.
