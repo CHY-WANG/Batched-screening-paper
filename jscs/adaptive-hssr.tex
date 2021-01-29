@@ -1,3 +1,72 @@
+\documentclass[]{interact}
+\usepackage{epstopdf}% To incorporate .eps illustrations using PDFLaTeX, etc.
+\usepackage[caption=false]{subfig}% Support for small, `sub' figures and tables
+%\usepackage[nolists,tablesfirst]{endfloat}% To `separate' figures and tables from text if required
+%\usepackage[doublespacing]{setspace}% To produce a `double spaced' document if required
+%\setlength\parindent{24pt}% To increase paragraph indentation when line spacing is doubled
+
+\usepackage[numbers,sort&compress]{natbib}% Citation support using natbib.sty
+\bibpunct[, ]{[}{]}{,}{n}{,}{,}% Citation support using natbib.sty
+\renewcommand\bibfont{\fontsize{10}{12}\selectfont}% Bibliography support using natbib.sty
+\makeatletter% @ becomes a letter
+\def\NAT@def@citea{\def\@citea{\NAT@separator}}% Suppress spaces between citations using natbib.sty
+\makeatother% @ becomes a symbol again
+
+\theoremstyle{plain}% Theorem-like structures provided by amsthm.sty
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+\newtheorem{notation}{Notation}
+
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[ruled,vlined, linesnumbered]{algorithm2e}
+\usepackage[english]{babel}
+\usepackage[nottoc]{tocbibind}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, citecolor=black, linkcolor=., urlcolor=cyan}
+\graphicspath{{../plots/}}
+
+% Custom commands / shortcuts
+\providecommand{\sign}{\textrm{sign}}
+\providecommand{\pb}[1]{\textcolor{red}{#1}}
+\providecommand{\lam}{\lambda}
+\newcommand{\quotes}[1]{`#1'}
+
+
+\title{Adaptive Hybrid Screening for Efficient Lasso Optimization}
+
+\author{Word count: 8899.}
+
+  
+
+\date{}
+
+\begin{document}
+
+\maketitle
+
+
+\begin{abstract}
+Lasso type models are popular in statistics, especially for high-dimensional data. Typical practice is to tune the size of lasso penalty along a path of values. Due to modern data collection techniques, researchers need to analyze data with millions of features, which brings a great need for an efficient lasso optimization algorithm. Feature screening techniques have proven to be powerful for this need, because they can discard features and lead to a model with much less features. In this paper, we develop an adaptive hybrid screening framework where screening is carried out adpatively along the path of tuning parameter values. It reuses previous solutions in the path and reduces unhelpful heavy computations. It is a flexible framework that can be easily extended to different types of lasso models. Two applications for the standard lasso model and the sparse logistic model are shown as examples. We perform simulation study and real data study in a wide range of scenarios and the adaptive hybrid methods outperform other state-of-the-art method significantly and uniformly, with the greatest speedup in the most challenging scenarios.
+\end{abstract}
+
+\begin{keywords}
+Lasso; feature Screening; safe screening; solution path; large-scale sparse learning
+\end{keywords}
+
 \section{Introduction}
 
 The least absolute shrinkage and selection operator, or lasso \citep{tibshirani1996regression}, is a popular model in statistics and machine learning, especially in high-dimensional problems. The model can be defined as the following modification of the least squares optimization problem:
@@ -504,3 +573,99 @@ In this paper, we have proposed a novel adaptive hybrid screening framework for 
 The algorithms for lasso-penalized linear and logistic regression have been implemented in the publicly accessible R package \textbf{biglasso} \citep{zeng2017biglasso}, which was used to carry out the numeric experiments.
 
 The proposed adaptive hybrid screening framework is flexible and can be extended in several ways. The framework is general and does not require a specific algorithm, strong rule, or safe rule. As faster algorithms to solve the lasso problem, better safe rules, or improved strong rules are developed, these can be directly plugged into the adaptive hybrid framework with a corresponding improvement in computational efficiency. Nevertheless, there are still several lasso type problems without sequential safe rules, such as sparse Cox regression, sparse Poisson regression, and sparse support vector machines. As safe rules for these problems are developed, they can be readily fit into our framework to produce efficient algorithms as well.
+
+\renewcommand\bibname{References}
+\bibliographystyle{tfnlm}
+\begin{thebibliography}{10}
+\providecommand{\url}[1]{\normalfont{#1}}
+\providecommand{\urlprefix}{Available from: }
+
+\bibitem{tibshirani1996regression}
+Tibshirani~R. Regression shrinkage and selection via the lasso. Journal of the
+  Royal Statistical Society: Series B (Methodological).
+  1996;\hspace{0pt}58(1):267--288.
+
+\bibitem{yuan2006model}
+Yuan~M, Lin~Y. Model selection and estimation in regression with grouped
+  variables. Journal of the Royal Statistical Society: Series B (Statistical
+  Methodology). 2006;\hspace{0pt}68(1):49--67.
+
+\bibitem{zou2005regularization}
+Zou~H, Hastie~T. Regularization and variable selection via the elastic net.
+  Journal of the Royal Statistical Society: Series B (Statistical Methodology).
+  2005;\hspace{0pt}67(2):301--320.
+
+\bibitem{friedman2007pathwise}
+Friedman~J, Hastie~T, H{\"o}fling~H, et~al. Pathwise coordinate optimization.
+  The Annals of Applied Statistics. 2007;\hspace{0pt}1(2):302--332.
+
+\bibitem{Tibshirani2012}
+Tibshirani~R, Bien~J, Friedman~J, et~al. Strong rules for discarding predictors
+  in lasso-type problems. Journal of the Royal Statistical Society Series B.
+  2012;\hspace{0pt}74(2):245--266.
+
+\bibitem{qian2019fast}
+Qian~J, Du~W, Tanigawa~Y, et~al. A fast and flexible algorithm for solving the
+  lasso in large-scale and ultrahigh-dimensional problems. BioRxiv.
+  2019;\hspace{0pt}:630079.
+
+\bibitem{ghaoui2010safe}
+Ghaoui~LE, Viallon~V, Rabbani~T. Safe feature elimination for the lasso and
+  sparse supervised learning problems. arXiv:10094219. 2010;\hspace{0pt}.
+
+\bibitem{wang2013lasso}
+Wang~J, Zhou~J, Wonka~P, et~al. Lasso screening rules via dual polytope
+  projection. In: Advances in Neural Information Processing Systems; 2013. p.
+  1070--1078.
+
+\bibitem{xiang2012fast}
+Xiang~ZJ, Ramadge~PJ. Fast lasso screening tests based on correlations. In:
+  International Conference on Acoustics, Speech and Signal Processing; IEEE;
+  2012. p. 2137--2140.
+
+\bibitem{xiang2011learning}
+Xiang~ZJ, Xu~H, Ramadge~PJ. Learning sparse representations of high dimensional
+  data on large scale dictionaries. In: Advances in Neural Information
+  Processing Systems; 2011. p. 900--908.
+
+\bibitem{Zeng2021}
+Zeng~Y, Yang~T, Breheny~P. Hybrid safe–strong rules for efficient
+  optimization in lasso-type problems. Computational Statistics \& Data
+  Analysis. 2021;\hspace{0pt}153:107063.
+
+\bibitem{zeng2017biglasso}
+Zeng~Y, Breheny~P. The biglasso package: a memory-and computation-efficient
+  solver for lasso model fitting with big data in {R}. arXiv:170105936.
+  2017;\hspace{0pt}.
+
+\bibitem{lee2007efficient}
+Lee~H, Battle~A, Raina~R, et~al. Efficient sparse coding algorithms. In:
+  Advances in neural information processing systems; 2007. p. 801--808.
+
+\bibitem{Fan2008}
+Fan~J, Lv~J. Sure independence screening for ultrahigh dimensional feature
+  space. Journal of the Royal Statistical Society Series B.
+  2008;\hspace{0pt}70(5):849--911.
+
+\bibitem{wang2014safe}
+Wang~J, Zhou~J, Liu~J, et~al. A safe screening rule for sparse logistic
+  regression. In: Advances in Neural Information Processing Systems; 2014. p.
+  1053--1061.
+
+\bibitem{breheny2015group}
+Breheny~P, Huang~J. Group descent algorithms for nonconvex penalized linear and
+  logistic regression models with grouped predictors. Statistics and Computing.
+  2015;\hspace{0pt}25(2):173--187.
+
+\bibitem{xiang2016screening}
+Xiang~ZJ, Wang~Y, Ramadge~PJ. Screening tests for lasso problems. IEEE
+  Transactions on Pattern Analysis and Machine Intelligence.
+  2016;\hspace{0pt}39(5):1008--1027.
+
+\bibitem{Das2016}
+Das~S, Forer~L, Sch{\"o}nherr~S, et~al. Next-generation genotype imputation
+  service and methods. Nature Genetics. 2016 Oct;\hspace{0pt}48(10):1284--1287.
+
+\end{thebibliography}
+
+\end{document}
