@@ -31,12 +31,13 @@
 \usepackage{amssymb}
 \usepackage[ruled,vlined, linesnumbered]{algorithm2e}
 \usepackage[english]{babel}
-\usepackage[nottoc]{tocbibind}
+%\usepackage[nottoc]{tocbibind}
 \usepackage{xcolor}
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{hyperref}
 \hypersetup{colorlinks=true, citecolor=black, linkcolor=., urlcolor=cyan}
+\usepackage{breakurl}
 \graphicspath{{../plots/}}
 
 % Custom commands / shortcuts
@@ -574,7 +575,6 @@ The algorithms for lasso-penalized linear and logistic regression have been impl
 
 The proposed adaptive hybrid screening framework is flexible and can be extended in several ways. The framework is general and does not require a specific algorithm, strong rule, or safe rule. As faster algorithms to solve the lasso problem, better safe rules, or improved strong rules are developed, these can be directly plugged into the adaptive hybrid framework with a corresponding improvement in computational efficiency. Nevertheless, there are still several lasso type problems without sequential safe rules, such as sparse Cox regression, sparse Poisson regression, and sparse support vector machines. As safe rules for these problems are developed, they can be readily fit into our framework to produce efficient algorithms as well.
 
-\renewcommand\bibname{References}
 \bibliographystyle{tfnlm}
 \begin{thebibliography}{10}
 \providecommand{\url}[1]{\normalfont{#1}}
