@@ -78,7 +78,7 @@ SSR possesses the nice property that the quantity $x_j^Tr(\lambda_l)/n$ needed f
 \subsection{Safe Rules}
 \label{sec:safe}
 
-Compared to strong rules, safe rules are never violated. Features can be discarded safely, with no need for post-covergence checking, as the coefficients are guaranteed to be zero by the rule. We mainly focus on enhanced dual polytope projections (EDPP) rules\citep{wang2013lasso} because they outperform other known safe rules and are easy to incorporate into our method.
+Compared to strong rules, safe rules are never violated. Features can be discarded safely, with no need for post-convergence checking, as the coefficients are guaranteed to be zero by the rule. We mainly focus on enhanced dual polytope projections (EDPP) rules\citep{wang2013lasso} because they outperform other known safe rules and are easy to incorporate into our method.
 
 The EDPP rules are derived from the dual formulation of the lasso problem and provide a bound for the residual vector $r(\lambda)$. Then using the KKT conditions, some features can be guaranteed to have zero coefficients and be discarded safely. Two forms of the EDPP rule, basic EDPP (BEDPP) and sequential EDPP (SEDPP)\citep{wang2013lasso}, were proposed without standardization and under the standardization \eqref{eq:std} can be simplified in the following theorems \citep{Zeng2021}:
 
@@ -235,7 +235,6 @@ This example also illustrates the appeal of choosing updates in an adaptive mann
 \subsubsection{Efficient Updating Algorithm}
 
 As explained in the previous section, it is reasonable to assume that the average cost, as a function of the update delay $B$, decreases at first, then reaches an optimal value before it begins increasing again. A reasonable approach to minimizing the average cost, therefore, is to update the reference at the point where reusing it one additional time would increase the average cost. That is, we should update the reference at $\lambda_{l+B}$ if $\bar{T}_l(B+1)>\bar{T}_l(B)$. In practice, we will instead update the reference to $\lambda_{l+B}$ when $\bar{T}_l(B)>\bar{T}_l(B-1)$, because $\bar{T}_l(B+1)$ cannot be calculated without having already carried out screening at $\lambda_{l+B+1}$. The two conditions should be close and thus this substitution should be near optimal. Combined with \eqref{eq:cost}, the latter condition is approximately
-
 \begin{equation}
     \label{eq:crit}
     (B-1)|\mathcal{S}_{l+B}|-\sum_{b=1}^{B-1}|\mathcal{S}_{l+b}|>p.
@@ -322,7 +321,6 @@ The group lasso model \citep{yuan2006model} estimates $\beta$ by minimizing
     \frac{1}{2n}\bigg|\bigg|y - \sum_{g=1}^GX_g\beta_g\bigg|\bigg|_2^2 + \lambda\sum_{g=1}^G\sqrt{p_g}||\beta_g||_2,
 \end{equation}
 where $\beta=(\beta_1^T,...,\beta_G^T)^T$, $X_g$ is a $n\times p_g$ sub-matrix consisting of columns of $X$ corresponding to the features in group $g$, $g=1,2,...,G$. In addition to the standardization conditions given in \eqref{eq:std}, we apply an additional standardization at the group level \citep{breheny2015group}:
-
 \begin{equation}
     \label{eq:stdg}
     X_g^TX_g=nI_{p_g\times p_g},\qquad g=1,2,...,G.
@@ -458,7 +456,7 @@ AHR & \textbf{0.71 (0.01)} & \textbf{1.15 (0.02)} & \textbf{8.80 (0.03)} & \text
 \label{Tab:real}
 \end{table}
 
-AHR again outperforms other screening methods on all data sets, faster than other methods by factor ranging from 70\% to 630\%. Also note that the performance of SEDPP varies considerably for the MNIST and NYT data sets, where the response is randomly selected in each replication, indicating that the speed of SEDPP is sensitive to the data. AHR is built with SEDPP as the safe rule but does not share this issue of instability because it can adaptively adjust itself according the performance of the safe rule.
+AHR again outperforms other screening methods on all data sets, faster than other methods by factor ranging from 70\% to 630\%. Also note that the performance of SEDPP varies considerably for the MNIST and NYT data sets, where the response is randomly selected in each replication, indicating that the speed of SEDPP is sensitive to the data. AHR is built with SEDPP as the safe rule but does not share this issue of instability because it can adaptively adjust itself according the performance of the safe rule. Besides the computation time, we also look at a variaty of other statistics in the experiments, as discussed in the Appendix \ref{sec:ap}.
 
 \subsection{Big Data Performance}
 
@@ -504,3 +502,4 @@ In this paper, we have proposed a novel adaptive hybrid screening framework for 
 The algorithms for lasso-penalized linear and logistic regression have been implemented in the publicly accessible R package \textbf{biglasso} \citep{zeng2017biglasso}, which was used to carry out the numeric experiments.
 
 The proposed adaptive hybrid screening framework is flexible and can be extended in several ways. The framework is general and does not require a specific algorithm, strong rule, or safe rule. As faster algorithms to solve the lasso problem, better safe rules, or improved strong rules are developed, these can be directly plugged into the adaptive hybrid framework with a corresponding improvement in computational efficiency. As a result of the flexibility, the standardization conditions required in this paper can also be removed if we substitute the underlying sequential safe rules with the forms in their original papers that do not require standardization. Nevertheless, there are still several lasso type problems without sequential safe rules, such as sparse Cox regression, sparse Poisson regression, and sparse support vector machines. The sequential strong rule can address these problems, but as safe rules for these problems are developed, our framework can readily fit both strong rules and safe rules in to produce an even more efficient algorithms.
+
