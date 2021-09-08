@@ -12,11 +12,17 @@ Thank you very much for your detailed reading of the paper and your insightful c
 
 \item \emph{Numerical studies only focus on the computational performances of the algorithms. One may be interested in some details in the proposed algorithm: the size of variables remaining from the safe or strong rules, the number of KKT condition checks, the adaptive batch sizes, etc. It would be good to add the numerical studies for details in the algorithm.}
 
+  This is an excellent point. We felt that some readers would definitely want to know this additional information, while others might just care that the algorithm is faster. So, in the revised manuscript we have created an appendix that presents these additional details, which do indeed lend insight into how all of the algorithms are working and how the proposed method manages to achieve efficiency gains.
+
 \item \emph{The paper assumes that the predictive variables are standardized for linear and logistic regression models. For group lasso, the additional orthogonal assumption are required for the proposed method. I’m just wondering if the proposed method is applicable without the standardization assumptions. Specifically, is it possible to develop (or exist) the sequential safe and strong rules without the standardization assumptions.}
 
 \item \emph{In page 10, line 13, ``We also assume that post-convergence check will usually pass in the first iterations''. I’m not sure it is reasonable.}
 
+  We now provide both a citation and our own investigations (in the appendix) to support this assumption.
+
 \item \emph{In page 8, line 19, ``the reference solutions are continually updated''. The reference solutions are not always updated. So, I’m not sure the term ``continually'' is appropriate.}
+
+  Very good point. In the revised manuscript, we have changed this to ``the reference gets updated periodically'', which is a more accurate description.
 
 \item \emph{In Figure 3, the green line (HSSR) pattern is quite different with others. Could you explain it?}
 
@@ -24,11 +30,23 @@ Thank you very much for your detailed reading of the paper and your insightful c
 
 \item \emph{In Theorem 4.1, $x_* \in \{ x_j : \hat{\beta}_j(\lambda_l) \ne 0 \}$. Is the $x_*$ arbitrary? It seems that further explanation for $x_*$ is needed.}
 
-\item \emph{Minor corrections:} These have all been made. Thank you very much for pointing them out.
+\end{enumerate}
 
+\textbf{Minor corrections:}
+
+\begin{enumerate}
+
+\item \emph{In Theorem 4.1, $\lambda_0 := \max_j |x^T_j y/n|$ may be incorrect. It would be the maximum gradient value at $\hat{\beta} = 0$ of the negative log-likelihood in logistic regression model.}
+
+\item \emph{In page 10, line 20, $|S_{l=b}|$ should be $|S_{l+b}|$.}
+
+\item \emph{In Figure 1, the green line is not continuous. It would be better to modify Figure 1.}
+
+\item \emph{In page 9, line 50, the ’line 12’ is better than ’line 11’ in Algorithm 1.}
+
+\item \emph{In Theorem 4.2, $\lambda_0 := \max_j \lVert \ldots \rVert$. The $j$ should be $g$.}
+  
 \end{enumerate}
 
 \end{document}
-
-
 
