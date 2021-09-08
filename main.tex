@@ -19,12 +19,12 @@ Safe screening rules can be implemented in one of two ways. Sequential rules do 
 
 In this paper, we propose an adaptive safe screening scheme. We begin choosing a solution as the reference for the safe rule and applying it to multiple solution steps along the path. However, unlike the one-step implementation, we monitor the power of the rule with this reference and once it is no longer effective, update the reference of the safe rule to the latest solution.  This process is repeated along the path, waiting until it is beneficial before investing in a new safe rule reference. This scheme avoids disadvantages of both sequential rules and one-step rules. Reusing the same solution as reference when the safe rule is still effective avoids unnecessary computations, while periodically updating the reference ensures that they maintain power across the entire path. We show that this adaptive approach can greatly reduce the computation time and outperforms other methods in all scenarios. Following the hybrid approaches, we also combined our approach with strong rules to form adaptive hybrid rules. Our method is general, and capable of utilizing any sequential safe rule, and thus readily extended to other lasso type models for which safe rules exist. Here, we illustrate its extensions to the logistic regression loss function and to the group lasso penalty.
 
-This manuscript provides a brief review of existing feature screening rules in Section\ref{sec:existing} as well as the following novel contributions:
+This manuscript provides a brief review of existing feature screening rules in Section~\ref{sec:existing} as well as the following novel contributions:
 
 \begin{itemize}
-    \item A new feature screening framework (Section 3.1,3.2), which updates the reference for screening along the grid of $\lambda$ values on any combination of strong screening rules and safe screening rules, which can generate a family of more efficient and scalable screening rules, compared to previous screening rules that are either sequential or one-step.
-    \item Three specific applications of this framework, for fitting lasso-penalized linear regression, lasso-penalized logistic regression and group lasso models, respectively (Section~\ref{sec:method},~\ref{sec:logis},~\ref{sec:group}).
-    \item An algorithm to determine when to update to a new reference $\lambda$ value for best efficiency (Section \ref{sec:adaptive}).
+    \item A new feature screening framework (Sections~\ref{sec:asr}, \ref{sec:ahr}), which updates the reference for screening along the grid of $\lambda$ values on any combination of strong screening rules and safe screening rules, which can generate a family of more efficient and scalable screening rules, compared to previous screening rules that are either sequential or one-step.
+    \item Three specific applications of this framework for fitting lasso penalized linear regression, lasso penalized logistic regression, and group lasso models (Sections~\ref{sec:method},~\ref{sec:logis},~\ref{sec:group}).
+    \item An algorithm to determine when to update the reference $\lambda$ value for best efficiency (Section \ref{sec:adaptive}).
     \item Simulation studies (Section~\ref{sec:sim}) and real data analysis (Section~\ref{sec:real-data}) under a variety of scenarios, including testing data sets larger than memory, which showed that the proposed algorithms outperform other approaches in all cases, with substantial speed up.
     \item The new feature screening methods for lasso-penalized linear regression and logistic regression were implemented and added as new options to the publicly accessible \textbf{R} package \textbf{biglasso} \citep{zeng2017biglasso}, which was used to carry out the analyses in this manuscript.
 \end{itemize}
@@ -126,6 +126,7 @@ In addition to the deterministic screening methods we have described, there are 
 % In this section, we will introduce the framework of adaptive hybrid rules, implement them with EDPP as the safe rule to form Ada-SSR-EDPP and propose a strategy to adaptively updating the reference.
 
 \subsection{Adaptive Safe Rules}
+\label{sec:asr}
 
 The SEDPP rule \eqref{eq:sedpp} from Theorem 2.2 allows us to screen features at $\lambda_{l+1}$ using the solution at $\lambda_l$ as a reference. However, since the grid of $\lam$ values is arbitrary, the rule with the same reference can be just as easily applied to screen solutions at $\lam_{l+2}, \lam_{l+3}, \ldots$, until some $\lam_{l+B}$, where we update the reference to the current solution at $\lam_{l+B}$ and screen the following $\lam$ values.  The difference is that in typical SEDPP usage, we would update the reference solution at every step of path; here, we are proposing to re-use solutions for several values of $\lam$, only updating the reference when it is computationally beneficial to do so.  We refer to this modification as \emph{adaptive EDPP}.  Adaptive EDPP is still a safe rule, but it is neither sequential nor one-step.   A similar idea would be to use the reference solution in batches, each one being used for a fixed number of $\lam$ steps.  However, since an appropriate batch size is difficult to determine ahead of time, and also because the ideal size changes along the path, we find that an adaptive approach is better (see Section~\ref{sec:adaptive}).
 
@@ -154,6 +155,7 @@ For each $\lambda$ value in $\lambda_{l+1},...,\lambda_{l+B}$, the computation i
 Compared to one-step methods like BEDPP, the reference solutions are updated systematically. As a result, the reference is always relatively close to the solution, and screening remains powerful over the entire path, unlike one-step methods where screening power drops drastically as $\lambda_l$ gets further away from $\lambda_0$. Compared to sequential methods like SEDPP, the adaptive method only requires $O(np)$ computations per update, while SEDPP requires $O(np)$ computations for each $\lambda$ value. The framework of adaptive safe screening can also be easily applied to other sequential safe rules, to form a family of adaptive safe rules.
 
 \subsection{Adaptive Hybrid Rules}
+\label{sec:ahr}
 
 Since HSSR \citep{Zeng2021} has been shown to provide significant speedup compared to safe rules alone, we also consider incorporating strong rules into adaptive EDPP screening, forming an adaptive hybrid rule combining SSR and adaptive EDPP.
 
@@ -167,7 +169,7 @@ By choosing the same reference for adaptive EDPP rule and adaptive SSR, the quan
 
 Below, we provide the explicit algorithm used to solve for the lasso solution path using our proposed adaptive hybrid screening rule. For the numeric experiments in Section~\ref{sec:experiments}, this algorithm was implemented using pathwise coordinate descent, but the algorithm can use any algorithm for solving the lasso problem.  Likewise, any adaptive safe rule could be substituted in place of EDPP screening.  Note here the first reference chosen will be $\lambda_0$, where the residuals vector $r(\lambda_0)$ is just the response $y$, because all the $\hat{\beta}(\lambda_0)$ are zero. The quantity $\{x_j^Ty\}_{j=1}^p$ is therefore computed at the beginning and stored for the whole path.
 
-\begin{algorithm}[H]
+\begin{algorithm}[ht]
   \label{alg:path}
     \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}\SetKwInOut{Pre}{Pre-compute}\SetKwInOut{Initialize}{Initialize}
     \SetAlgoLined
@@ -211,7 +213,7 @@ In this section we will fill in line \ref{line:upcond} in Algorithm~\ref{alg:pat
 \subsubsection{Complexity Analysis}
 \label{sec:complexity}
 
-This complexity analysis will only consider calculations with $O(np)$ complexity. The remaining calculations, those with $O(p)$ complexity for example, are not only of lower order, but also consume less memory and thus usually do no require out-of-core computing. Calculation of $\{x_j^Ty\}_{j=1}^p$ is needed only once for the whole solution path; we ignore this as well as its computational cost is the same across all approaches. We assume that strong rule screening is always powerful in the sense that its set of non-discarded features, $\mathcal{R}_{l+b}$, satisfies $|\mathcal{R}_{l+b}|=o(p) \approx 0$, but that safe rule screening, with corresponding set $\mathcal{S}_{l+b}$, may not be. We also assume that post-convergence check will usually pass in the first iteration and thus is only needed approximately once per $\lambda$. These two assumptions are supported by experiments from the origin paper of SSR \citep{Tibshirani2012}, many other papers studying feature screening, and our manuscript as discussed in the Appendix \ref{sec:ap}.
+This complexity analysis will only consider calculations with $O(np)$ complexity. The remaining calculations, those with $O(p)$ complexity for example, are not only of lower order, but also consume less memory and thus usually do no require out-of-core computing. Calculation of $\{x_j^Ty\}_{j=1}^p$ is needed only once for the whole solution path; we ignore this as well as its computational cost is the same across all approaches. We assume that strong rule screening is always powerful in the sense that its set of non-discarded features, $\mathcal{R}_{l+b}$, satisfies $|\mathcal{R}_{l+b}|=o(p) \approx 0$, but that safe rule screening, with corresponding set $\mathcal{S}_{l+b}$, may not be. We also assume that post-convergence check will usually pass in the first iteration and thus is only needed approximately once per $\lambda$. These two assumptions are supported by experiments from the original SSR paper \citep{Tibshirani2012} as well as our own investigations as discussed in the Appendix.
 
 Under these assumptions, there are two dominating parts in the algorithm within each update. First, the computation of $\{x_j^Tr(\lambda_l)\}_{j=1}^p$ at the time of updating the reference, which requires $np$ multiplications. Then, for each $\lambda_{l+b}$, the post-convergence check requires approximately $|\mathcal{S}_{l+b} \setminus \mathcal{R}_{l+b}| \approx |\mathcal{S}_{l+b}|$ KKT condition checks, each of which requires $n$ multiplications. These sum to $n\sum_{b=1}^{B}|\mathcal{S}_{l+b}|$ multiplications, where $l+B$ is the start of the next update. Combining these two parts, the average cost per $\lambda$ in the block $\lambda_{l+1},...,\lambda_{l+B}$ is
 \begin{equation}
@@ -378,13 +380,13 @@ The data is simulated from the model: $y=X\beta+0.1\epsilon$. The elements of $X
     \item \textbf{Varying number of grid points $L$ with fixed spacing:} $L$ from $20$ to $1000$ while controlling $\lambda_{\min}/\lambda_{\max}$ so that the spacing of the $\lambda$-values on the log scale is the same.
 \end{enumerate}
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{511.eps}    \caption{Comparing speed of screening methods for lasso model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to AC. First column: varying number of features $p$. Second column: varying sample size $n$. Third column: varying signal strength $\beta_{\max}$. Fourth column: varying sparsity $s$.}
     \label{fig:5.1.1a}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.82\textwidth]{511b.eps}    \caption{Comparing speed of screening methods for lasso model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to AC. First column: Varying number of grid points $L$. Second column: Varying range of grid $\lambda_{\min}/\lambda_{\max}$. Third column: Varying number of grid points $L$ with fixed spacing.}
     \label{fig:5.1.1b}
@@ -402,13 +404,13 @@ We now turn our attention to the sparse logistic regression model, comparing seq
 
 The data are simulated from the model: $y=\mathbf{1}\{X\beta+0.1\epsilon >0\}$. As before, $X$ and $\epsilon$ are sampled i.i.d from $N(0,1)$, while $\beta$ has $s$ randomly selected elements equally spaced between $[-\beta_{\max},\beta_{\max}]$. Each setting is replicated $10$ times to calculate the average time cost. We consider the same 7 cases as in the previous experiment.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{512.eps}    \caption{Comparing speed of screening methods for sparse logistic regression model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to SSR. First column: varying number of features $p$. Second column: varying sample size $n$. Third column: varying signal strength $\beta_{\max}$. Fourth column: varying sparsity $s$.}
     \label{fig:5.1.2a}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.82\textwidth]{512b.eps}    \caption{Comparing speed of screening methods for sparse logistic regression model under different settings. Top row: computation time in second. Bottom row: relative computation time compared to SSR. First column: Varying number of grid points $L$. Second column: Varying range of grid $\lambda_{\min}/\lambda_{\max}$. Third column: Varying number of grid points $L$ with fixed spacing.}
     \label{fig:5.1.2b}
@@ -437,7 +439,7 @@ polymorphisms (SNPs) collected from $n=313$ human hearts. The response is the lo
 
 For GENE and GWAS, we replicate the experiment 10 times to take the average. For data sets MNIST and NYT, because the response is randomly selected, we replicate the experiment 50 times to get an accurate estimate. Table~\ref{Tab:real} compares the average computation time for different screening methods in these data sets.
 
-\begin{table}[H]
+\begin{table}[ht]
 \centering
 \begin{tabular}{lllll}
 \toprule
@@ -452,11 +454,11 @@ HSSR & 1.21 (0.01) & 3.44 (0.07) & 23.85 (0.06) & 31.05 (0.80) \\
 AHR & \textbf{0.71 (0.01)} & \textbf{1.15 (0.02)} & \textbf{8.80 (0.03)} & \textbf{12.71 (1.05)} \\
 \bottomrule
 \end{tabular}
-\caption{Average computing time in second (standard error) for solving the lasso model}
+\caption{Average computing time in seconds (standard error) for solving the lasso model}
 \label{Tab:real}
 \end{table}
 
-AHR again outperforms other screening methods on all data sets, faster than other methods by factor ranging from 70\% to 630\%. Also note that the performance of SEDPP varies considerably for the MNIST and NYT data sets, where the response is randomly selected in each replication, indicating that the speed of SEDPP is sensitive to the data. AHR is built with SEDPP as the safe rule but does not share this issue of instability because it can adaptively adjust itself according the performance of the safe rule. Besides the computation time, we also look at a variaty of other statistics in the experiments, as discussed in the Appendix \ref{sec:ap}.
+AHR again outperforms other screening methods on all data sets, faster than other methods by a factor ranging from 70\% to 630\%. Also note that the performance of SEDPP varies considerably for the MNIST and NYT data sets, where the response is randomly selected in each replication, indicating that the speed of SEDPP is sensitive to the data. AHR is built with SEDPP as the safe rule but does not share this issue of instability because it adaptively adjusts itself according the performance of the safe rule. A more detailed investigation of the algorithms' performance on these data sets including information on the number of rejections and KKT checks required is provided in the Appendix.
 
 \subsection{Big Data Performance}
 
@@ -464,7 +466,7 @@ Ultra high dimensional big data that is too large to fit into memory represents 
 
 A variety of clinical data was collected on these individuals. To examine the performance of screening rules for linear regression, we focused on left ventricular ejection fraction (LVEF) as the response. LVEF measures the proportion of blood being pumped out of the left ventricle of the heart with each contraction. Lower values are associated with more severe heart disease. LVEF data was available for $n=973$ subjects and they will be considered as the sample for this analysis. The experiment is replicated 5 times, and results are shown in Table~\ref{Tab:lvef}.
 
-\begin{table}[H]
+\begin{table}[ht]
 \centering
 \begin{tabular}{llllll}
 \toprule
@@ -479,7 +481,7 @@ Standard error & 0.43 & 0.65 & 0.20 & 0.48 & 0.15 \\
 
 For the sparse logistic model, we choose the New York Heart Association (NYHA) Functional Classification as the response, which classifies patients on the basis of limitations to their physical activity. The classes range from 1 to 4, which we dichotomize into patients with no or slight limitation of physical activity (classes 1 and 2) and patients with substantial limitations (classes 3 and 4). The NYHA classification was available for $n=1008$ subjects, who form the sample for the logistic regression analysis. The experiment is replicated 5 times to take the average and results are shown in Table~\ref{Tab:nyha}.
 
-\begin{table}[H]
+\begin{table}[ht]
 \centering
 \begin{tabular}{llll}
 \toprule
