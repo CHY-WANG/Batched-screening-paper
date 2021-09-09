@@ -16,19 +16,27 @@ Thank you very much for your detailed reading of the paper and your insightful c
 
 \item \emph{The paper assumes that the predictive variables are standardized for linear and logistic regression models. For group lasso, the additional orthogonal assumption are required for the proposed method. I’m just wondering if the proposed method is applicable without the standardization assumptions. Specifically, is it possible to develop (or exist) the sequential safe and strong rules without the standardization assumptions.}
 
+    Most of the sequential safe or strong rules does not require standardization, including the rules mentioned in our manuscript. As a result, our method does not require standardization and we introduce the standardization assumption mainly for simplicity. We also add this clarification to the manuscript in the end of the first paragraph in Section 2.
+
 \item \emph{In page 10, line 13, ``We also assume that post-convergence check will usually pass in the first iterations''. I’m not sure it is reasonable.}
 
   We now provide both a citation and our own investigations (in the appendix) to support this assumption.
 
 \item \emph{In page 8, line 19, ``the reference solutions are continually updated''. The reference solutions are not always updated. So, I’m not sure the term ``continually'' is appropriate.}
 
-  Very good point. In the revised manuscript, we have changed this to ``the reference gets updated periodically'', which is a more accurate description.
+  Very good point. In the revised manuscript, we have changed this to ``the reference gets updated systematically'', which is a more accurate description.
 
 \item \emph{In Figure 3, the green line (HSSR) pattern is quite different with others. Could you explain it?}
 
+    We add a brief explanation that HSSR works better when $\lambda$ values in the path are closer to $\lambda_{\max}$ but we decide not to go deeper as HSSR is not our main interest.
+
 \item \emph{In Section 6(Conclusion), there does not exist the sequential safe rules for sparse Cox regression, Poisson regression, and support vector machines. It would be good to explain the existence of the sequential strong rules for each problem.}
+    
+    Thanks for this good suggestion. We explain their existence in the last sentence in this section.
 
 \item \emph{In Theorem 4.1, $x_* \in \{ x_j : \hat{\beta}_j(\lambda_l) \ne 0 \}$. Is the $x_*$ arbitrary? It seems that further explanation for $x_*$ is needed.}
+
+    It is a good question. In the second sentence in the last paragraph after the theorem, we clarify that $x_*$ can be chosen arbitrarily and add more explanation for it.
 
 \end{enumerate}
 
@@ -37,14 +45,24 @@ Thank you very much for your detailed reading of the paper and your insightful c
 \begin{enumerate}
 
 \item \emph{In Theorem 4.1, $\lambda_0 := \max_j |x^T_j y/n|$ may be incorrect. It would be the maximum gradient value at $\hat{\beta} = 0$ of the negative log-likelihood in logistic regression model.}
+    
+    Under the standardization assumption, the gradient will be $|x^T_j y/n|$ and this expression is correct.
 
 \item \emph{In page 10, line 20, $|S_{l=b}|$ should be $|S_{l+b}|$.}
 
+    Thanks for the good observation and it is fixed.
+
 \item \emph{In Figure 1, the green line is not continuous. It would be better to modify Figure 1.}
+    
+    The green line should have jumps that represent updates of reference that increase screening power. We add an explanation of the jumps in the 7th sentence in the paragraph after the figure.
 
 \item \emph{In page 9, line 50, the ’line 12’ is better than ’line 11’ in Algorithm 1.}
 
+    Good suggestion. It is updated.
+
 \item \emph{In Theorem 4.2, $\lambda_0 := \max_j \lVert \ldots \rVert$. The $j$ should be $g$.}
+
+    Thanks. It is fixed.
   
 \end{enumerate}
 
