@@ -12,11 +12,11 @@ Thank you very much for your detailed reading of the paper and your insightful c
 
 \item \emph{Numerical studies only focus on the computational performances of the algorithms. One may be interested in some details in the proposed algorithm: the size of variables remaining from the safe or strong rules, the number of KKT condition checks, the adaptive batch sizes, etc. It would be good to add the numerical studies for details in the algorithm.}
 
-  This is an excellent point. We felt that some readers would definitely want to know this additional information, while others might just care that the algorithm is faster. So, in the revised manuscript we have created an appendix that presents these additional details, which do indeed lend insight into how all of the algorithms are working and how the proposed method manages to achieve efficiency gains.
+  This is an excellent point. We felt that some readers would definitely want to know this additional information, while others might just care that the algorithm is faster. So, in the revised manuscript we present these additional details in an appendix, which does indeed lend insight into how all of the algorithms are working and how the proposed method manages to achieve efficiency gains.
 
 \item \emph{The paper assumes that the predictive variables are standardized for linear and logistic regression models. For group lasso, the additional orthogonal assumption are required for the proposed method. I’m just wondering if the proposed method is applicable without the standardization assumptions. Specifically, is it possible to develop (or exist) the sequential safe and strong rules without the standardization assumptions.}
 
-    Most of the sequential safe or strong rules does not require standardization, including the rules mentioned in our manuscript. As a result, our method does not require standardization and we introduce the standardization assumption mainly for simplicity. We also add this clarification to the manuscript in the end of the first paragraph in Section 2.
+  Most sequential safe or strong rules do not require standardization, including the rules that we describe in our manuscript. As a result, our method does not require standardization. We introduce the standardization assumption mainly for simplicity. In the revised manuscript, we have clarified this point at the end of the first paragraph in Section 2.
 
 \item \emph{In page 10, line 13, ``We also assume that post-convergence check will usually pass in the first iterations''. I’m not sure it is reasonable.}
 
@@ -28,43 +28,42 @@ Thank you very much for your detailed reading of the paper and your insightful c
 
 \item \emph{In Figure 3, the green line (HSSR) pattern is quite different with others. Could you explain it?}
 
-    We add a brief explanation that HSSR works better when $\lambda$ values in the path are closer to $\lambda_{\max}$ but we decide not to go deeper as HSSR is not our main interest.
+  We have added a short explanation in Section 5.1.1 that HSSR works better when $\lambda$ values in the path are closer to $\lambda_{\max}$. Further exploration and discussion of the performance of hybrid rules compared to safe/strong rules may be found in Zeng et al.~(2021) paper in which they are proposed.
 
 \item \emph{In Section 6(Conclusion), there does not exist the sequential safe rules for sparse Cox regression, Poisson regression, and support vector machines. It would be good to explain the existence of the sequential strong rules for each problem.}
-    
-    Thanks for this good suggestion. We explain their existence in the last sentence in this section.
+
+  Thank you for this good suggestion. In the final paragraph of the conclusion section, we now discuss the existence of strong rules for various models.
 
 \item \emph{In Theorem 4.1, $x_* \in \{ x_j : \hat{\beta}_j(\lambda_l) \ne 0 \}$. Is the $x_*$ arbitrary? It seems that further explanation for $x_*$ is needed.}
 
-    It is a good question. In the second sentence in the last paragraph after the theorem, we clarify that $x_*$ can be chosen arbitrarily and add more explanation for it.
+  This is a good question. We have added further clarification of this point in paragraph following the theorem. The feature $x_*$ is indeed arbitrary -- any feature with non-zero coefficient at the reference $\lambda_l$ suffices.
 
 \end{enumerate}
-
-\textbf{Minor corrections:}
+ 
+\subsubsection*{Minor corrections:}
 
 \begin{enumerate}
 
 \item \emph{In Theorem 4.1, $\lambda_0 := \max_j |x^T_j y/n|$ may be incorrect. It would be the maximum gradient value at $\hat{\beta} = 0$ of the negative log-likelihood in logistic regression model.}
-    
-    Under the standardization assumption, the gradient will be $|x^T_j y/n|$ and this expression is correct.
+
+  You are correct that $\lambda_0$ should be the maximum gradient of the negative log-likelihood. However, under the standardization assumption, this gradient is $|x^T_j y/n|$ at $\hat{\beta} = 0$. Thus, the expression is correct, albeit not immediately obvious.
 
 \item \emph{In page 10, line 20, $|S_{l=b}|$ should be $|S_{l+b}|$.}
 
-    Thanks for the good observation and it is fixed.
+  Thank you very much for pointing this out. We have corrected this in the revised submission.
 
 \item \emph{In Figure 1, the green line is not continuous. It would be better to modify Figure 1.}
-    
-    The green line should have jumps that represent updates of reference that increase screening power. We add an explanation of the jumps in the 7th sentence in the paragraph after the figure.
+
+  Thank you for directing our attention to the fact that this may be confusing to the reader. The discontinuities are correct -- every time the reference is updated, this causes a ``jump'' as the screening power is greatly increased every time this happens. In the revised manuscript, we have added an explanation for this phenomenon in the paragraph following Figure 1.
 
 \item \emph{In page 9, line 50, the ’line 12’ is better than ’line 11’ in Algorithm 1.}
 
-    Good suggestion. It is updated.
+  Thank you very much for pointing this out. We have adopted this suggestion in the revised submission.
 
 \item \emph{In Theorem 4.2, $\lambda_0 := \max_j \lVert \ldots \rVert$. The $j$ should be $g$.}
 
-    Thanks. It is fixed.
-  
+  Thank you very much for pointing this out. We have corrected this in the revised submission.
+
 \end{enumerate}
 
 \end{document}
-

@@ -284,7 +284,7 @@ In this section we will fill in line \ref{line:upcond} in Algorithm~\ref{alg:pat
 \subsubsection{Complexity Analysis}
 \label{sec:complexity}
 
-This complexity analysis will only consider calculations with $O(np)$ complexity. The remaining calculations, those with $O(p)$ complexity for example, are not only of lower order, but also consume less memory and thus usually do no require out-of-core computing. Calculation of $\{x_j^Ty\}_{j=1}^p$ is needed only once for the whole solution path; we ignore this as well as its computational cost is the same across all approaches. We assume that strong rule screening is always powerful in the sense that its set of non-discarded features, $\mathcal{R}_{l+b}$, satisfies $|\mathcal{R}_{l+b}|=o(p) \approx 0$, but that safe rule screening, with corresponding set $\mathcal{S}_{l+b}$, may not be. We also assume that post-convergence check will usually pass in the first iteration and thus is only needed approximately once per $\lambda$. These two assumptions are supported by experiments from the origin paper of SSR \citep{Tibshirani2012}, many other papers studying feature screening, and our manuscript as discussed in the Appendix.
+This complexity analysis will only consider calculations with $O(np)$ complexity. The remaining calculations, those with $O(p)$ complexity for example, are not only of lower order, but also consume less memory and thus usually do no require out-of-core computing. Calculation of $\{x_j^Ty\}_{j=1}^p$ is needed only once for the whole solution path; we ignore this as well as its computational cost is the same across all approaches. We assume that strong rule screening is always powerful in the sense that its set of non-discarded features, $\mathcal{R}_{l+b}$, satisfies $|\mathcal{R}_{l+b}|=o(p) \approx 0$, but that safe rule screening, with corresponding set $\mathcal{S}_{l+b}$, may not be. We also assume that post-convergence check will usually pass in the first iteration and thus is only needed approximately once per $\lambda$. These two assumptions are supported by experiments from the original SSR paper \citep{Tibshirani2012} as well as our own investigations as discussed in the Appendix.
 
 Under these assumptions, there are two dominating parts in the algorithm within each update. First, the computation of $\{x_j^Tr(\lambda_l)\}_{j=1}^p$ at the time of updating the reference, which requires $np$ multiplications. Then, for each $\lambda_{l+b}$, the post-convergence check requires approximately $|\mathcal{S}_{l+b} \setminus \mathcal{R}_{l+b}| \approx |\mathcal{S}_{l+b}|$ KKT condition checks, each of which requires $n$ multiplications. These sum to $n\sum_{b=1}^{B}|\mathcal{S}_{l+b}|$ multiplications, where $l+B$ is the start of the next update. Combining these two parts, the average cost per $\lambda$ in the block $\lambda_{l+1},...,\lambda_{l+B}$ is
 \begin{equation}
@@ -382,7 +382,7 @@ Then $\hat{\beta}_j(\lambda_{l+b})=0$ if
   \end{equation}
 \end{theorem}
 
-When computing the adaptive Slores, $\{x_j^Ty\}_{j=1}^p$ needs to be computed only once, after which it can be stored and reused for the whole solution path. The vector $x_*$ can be chosen arbitrarily from features that has non-zero coefficients at the reference $\lambda_l$, for example, the feature whose coefficient that first enters the model. The quantity $\{x_j^Tx_*\}_{j=1}^p$ can be similarly reused unless the corresponding regression coefficient drops out of the model; this can happen but is relatively rare. Other than those two terms, the only term that requires expensive $O(np)$ computations is $\{x_j^Tr(\lambda_l)\}_{j=1}^p$, which needs to be computed only when we update the reference solution. Thus Algorithm~\ref{alg:path} can be applies to the sparse logistic model, with Slores replacing EDPP, to form the adaptive hybrid rule algorithm for sparse logistic regression.
+When computing the adaptive Slores, $\{x_j^Ty\}_{j=1}^p$ needs to be computed only once, after which it can be stored and reused for the whole solution path. The vector $x_*$ can be chosen arbitrarily -- any feature with non-zero coefficient at the reference $\lambda_l$ suffices. The quantity $\{x_j^Tx_*\}_{j=1}^p$ can be similarly reused unless the corresponding regression coefficient drops out of the model; this can happen but is relatively rare. Other than those two terms, the only term that requires expensive $O(np)$ computations is $\{x_j^Tr(\lambda_l)\}_{j=1}^p$, which needs to be computed only when we update the reference solution. Thus Algorithm~\ref{alg:path} can be applies to the sparse logistic model, with Slores replacing EDPP, to form the adaptive hybrid rule algorithm for sparse logistic regression.
 
 \subsection{Adaptive Safe Rule for Group Lasso}
 \label{sec:group}
@@ -529,7 +529,7 @@ AHR & \textbf{0.71 (0.01)} & \textbf{1.15 (0.02)} & \textbf{8.80 (0.03)} & \text
 \label{Tab:real}
 \end{table}
 
-AHR again outperforms other screening methods on all data sets, faster than other methods by factor ranging from 70\% to 630\%. Also note that the performance of SEDPP varies considerably for the MNIST and NYT data sets, where the response is randomly selected in each replication, indicating that the speed of SEDPP is sensitive to the data. AHR is built with SEDPP as the safe rule but does not share this issue of instability because it can adaptively adjust itself according the performance of the safe rule. Besides the computation time, we also look at a variaty of other statistics in the experiments, as discussed in the Appendix.
+AHR again outperforms other screening methods on all data sets, faster than other methods by a factor ranging from 70\% to 630\%. Also note that the performance of SEDPP varies considerably for the MNIST and NYT data sets, where the response is randomly selected in each replication, indicating that the speed of SEDPP is sensitive to the data. AHR is built with SEDPP as the safe rule but does not share this issue of instability because it adaptively adjusts itself according the performance of the safe rule. A more detailed investigation of the algorithms' performance on these data sets including information on the number of rejections and KKT checks required is provided in the Appendix.
 
 \subsection{Big Data Performance}
 
@@ -669,6 +669,9 @@ Das~S, Forer~L, Sch{\"o}nherr~S, et~al. Next-generation genotype imputation
   service and methods. Nature Genetics. 2016 Oct;\hspace{0pt}48(10):1284--1287.
 
 \end{thebibliography}
+
+%\appendix
+%\appendixpage
 
 \section*{Appendix}
 %\label{sec:ap}
